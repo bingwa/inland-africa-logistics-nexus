@@ -7,18 +7,18 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const Dashboard = () => {
   // Sample data for charts
   const monthlyRevenue = [
-    { month: "Jan", revenue: 45000, trips: 120 },
-    { month: "Feb", revenue: 52000, trips: 135 },
-    { month: "Mar", revenue: 48000, trips: 128 },
-    { month: "Apr", revenue: 61000, trips: 150 },
-    { month: "May", revenue: 55000, trips: 142 },
-    { month: "Jun", revenue: 67000, trips: 165 },
+    { month: "Jan", revenue: 450000, trips: 120 },
+    { month: "Feb", revenue: 520000, trips: 135 },
+    { month: "Mar", revenue: 480000, trips: 128 },
+    { month: "Apr", revenue: 610000, trips: 150 },
+    { month: "May", revenue: 550000, trips: 142 },
+    { month: "Jun", revenue: 670000, trips: 165 },
   ];
 
   const fleetStatus = [
-    { name: "Active", value: 45, color: "#1B4332" },
-    { name: "Maintenance", value: 8, color: "#D4AF37" },
-    { name: "Out of Service", value: 3, color: "#EF4444" },
+    { name: "Active", value: 45, color: "#ffd700" },
+    { name: "Maintenance", value: 8, color: "#fbbf24" },
+    { name: "Out of Service", value: 3, color: "#ef4444" },
   ];
 
   const stats = [
@@ -28,6 +28,7 @@ const Dashboard = () => {
       change: "+2",
       icon: Truck,
       color: "text-green-600",
+      bgGradient: "from-green-50 to-green-100",
     },
     {
       title: "Total Trips",
@@ -35,6 +36,7 @@ const Dashboard = () => {
       change: "+12%",
       icon: Route,
       color: "text-blue-600",
+      bgGradient: "from-blue-50 to-blue-100",
     },
     {
       title: "Inventory Items",
@@ -42,6 +44,7 @@ const Dashboard = () => {
       change: "-5",
       icon: Package,
       color: "text-purple-600",
+      bgGradient: "from-purple-50 to-purple-100",
     },
     {
       title: "Pending Services",
@@ -49,43 +52,56 @@ const Dashboard = () => {
       change: "+3",
       icon: Settings,
       color: "text-orange-600",
+      bgGradient: "from-orange-50 to-orange-100",
     },
   ];
 
   return (
     <Layout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-8 animate-fade-in">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-logistics-primary">Dashboard</h1>
-          <p className="text-gray-600">Overview of your logistics operations</p>
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-yellow-500/10 rounded-2xl -rotate-1"></div>
+          <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl p-8 border border-yellow-200/50">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Dashboard Overview
+            </h1>
+            <p className="text-gray-600 text-lg mt-2">Real-time insights into your logistics operations</p>
+          </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, index) => (
-            <Card key={index} className="stats-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-logistics-primary">{stat.value}</p>
-                    <p className={`text-sm ${stat.color}`}>{stat.change} from last month</p>
+            <div key={index} className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-yellow-500/20 rounded-xl rotate-1 group-hover:rotate-2 transition-transform duration-300"></div>
+              <Card className="relative stats-card animate-scale-in" style={{ animationDelay: `${index * 100}ms` }}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                      <p className={`text-sm font-medium ${stat.color}`}>{stat.change} from last month</p>
+                    </div>
+                    <div className={`p-4 rounded-xl bg-gradient-to-br ${stat.bgGradient}`}>
+                      <stat.icon className={`w-8 h-8 ${stat.color}`} />
+                    </div>
                   </div>
-                  <stat.icon className={`w-8 h-8 ${stat.color}`} />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           ))}
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Revenue Chart */}
-          <Card>
+          <Card className="card-modern">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-logistics-accent" />
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-500">
+                  <TrendingUp className="w-5 h-5 text-black" />
+                </div>
                 Monthly Revenue & Trips
               </CardTitle>
               <CardDescription>Revenue and trip statistics for the last 6 months</CardDescription>
@@ -93,22 +109,41 @@ const Dashboard = () => {
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={monthlyRevenue}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="revenue" fill="#1B4332" name="Revenue ($)" />
-                  <Bar dataKey="trips" fill="#D4AF37" name="Trips" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" stroke="#666" />
+                  <YAxis stroke="#666" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                      border: '1px solid #ffd700', 
+                      borderRadius: '8px',
+                      backdropFilter: 'blur(10px)'
+                    }} 
+                  />
+                  <Bar dataKey="revenue" fill="url(#revenueGradient)" name="Revenue (KSh)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="trips" fill="url(#tripsGradient)" name="Trips" radius={[4, 4, 0, 0]} />
+                  <defs>
+                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#1a1a1a" stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor="#1a1a1a" stopOpacity={0.6}/>
+                    </linearGradient>
+                    <linearGradient id="tripsGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ffd700" stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor="#ffd700" stopOpacity={0.6}/>
+                    </linearGradient>
+                  </defs>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
           {/* Fleet Status */}
-          <Card>
+          <Card className="card-modern">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Truck className="w-5 h-5 text-logistics-accent" />
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-500">
+                  <Truck className="w-5 h-5 text-black" />
+                </div>
                 Fleet Status
               </CardTitle>
               <CardDescription>Current status of your truck fleet</CardDescription>
@@ -138,7 +173,7 @@ const Dashboard = () => {
                       className="w-3 h-3 rounded-full" 
                       style={{ backgroundColor: status.color }}
                     ></div>
-                    <span className="text-sm text-gray-600">{status.name}: {status.value}</span>
+                    <span className="text-sm text-gray-600 font-medium">{status.name}: {status.value}</span>
                   </div>
                 ))}
               </div>
@@ -147,28 +182,28 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Activities & Alerts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Recent Activities */}
-          <Card>
+          <Card className="card-modern">
             <CardHeader>
-              <CardTitle>Recent Activities</CardTitle>
+              <CardTitle className="text-xl">Recent Activities</CardTitle>
               <CardDescription>Latest system activities and updates</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {[
-                  { action: "Trip completed", details: "Route: Lagos - Abuja", time: "2 hours ago" },
-                  { action: "Service scheduled", details: "Truck: TRK-001", time: "4 hours ago" },
-                  { action: "Inventory updated", details: "Brake pads restocked", time: "6 hours ago" },
-                  { action: "New trip assigned", details: "Route: Kano - Port Harcourt", time: "8 hours ago" },
+                  { action: "Trip completed", details: "Route: Nairobi - Mombasa", time: "2 hours ago", icon: "✅" },
+                  { action: "Service scheduled", details: "Truck: TRK-001", time: "4 hours ago", icon: "🔧" },
+                  { action: "Inventory updated", details: "Brake pads restocked", time: "6 hours ago", icon: "📦" },
+                  { action: "New trip assigned", details: "Route: Kisumu - Eldoret", time: "8 hours ago", icon: "🚛" },
                 ].map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="w-2 h-2 bg-logistics-accent rounded-full"></div>
+                  <div key={index} className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-yellow-50/30 hover:from-yellow-50 hover:to-yellow-100/50 transition-all duration-300 group">
+                    <div className="text-2xl">{activity.icon}</div>
                     <div className="flex-1">
-                      <p className="font-medium text-logistics-primary">{activity.action}</p>
+                      <p className="font-semibold text-gray-900">{activity.action}</p>
                       <p className="text-sm text-gray-600">{activity.details}</p>
                     </div>
-                    <span className="text-xs text-gray-500">{activity.time}</span>
+                    <span className="text-xs text-gray-500 font-medium">{activity.time}</span>
                   </div>
                 ))}
               </div>
@@ -176,10 +211,12 @@ const Dashboard = () => {
           </Card>
 
           {/* System Alerts */}
-          <Card>
+          <Card className="card-modern">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-orange-500" />
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-orange-400 to-red-500">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
                 System Alerts
               </CardTitle>
               <CardDescription>Important notifications requiring attention</CardDescription>
@@ -187,19 +224,15 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-4">
                 {[
-                  { level: "high", message: "TRK-005 requires immediate service", time: "1 hour ago" },
-                  { level: "medium", message: "Low fuel detected on Route 12", time: "3 hours ago" },
-                  { level: "low", message: "Driver license expiring in 30 days", time: "1 day ago" },
-                  { level: "medium", message: "Spare parts inventory low", time: "2 days ago" },
+                  { level: "high", message: "TRK-005 requires immediate service", time: "1 hour ago", priority: "🔴" },
+                  { level: "medium", message: "Low fuel detected on Route 12", time: "3 hours ago", priority: "🟡" },
+                  { level: "low", message: "Driver license expiring in 30 days", time: "1 day ago", priority: "🟢" },
+                  { level: "medium", message: "Spare parts inventory low", time: "2 days ago", priority: "🟡" },
                 ].map((alert, index) => (
-                  <div key={index} className="flex items-center space-x-4 p-3 rounded-lg border-l-4 border-l-orange-400 bg-orange-50">
-                    <AlertTriangle className={`w-4 h-4 ${
-                      alert.level === 'high' ? 'text-red-500' : 
-                      alert.level === 'medium' ? 'text-orange-500' : 
-                      'text-yellow-500'
-                    }`} />
+                  <div key={index} className="flex items-center space-x-4 p-4 rounded-xl border-l-4 border-l-orange-400 bg-gradient-to-r from-orange-50 to-red-50/30 hover:shadow-md transition-all duration-300">
+                    <div className="text-xl">{alert.priority}</div>
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{alert.message}</p>
+                      <p className="font-semibold text-gray-900">{alert.message}</p>
                       <p className="text-sm text-gray-600">{alert.time}</p>
                     </div>
                   </div>

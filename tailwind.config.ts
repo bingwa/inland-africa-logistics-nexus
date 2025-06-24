@@ -54,11 +54,17 @@ export default {
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				logistics: {
-					primary: '#000000',
-					secondary: '#FFD700',
-					accent: '#FFC107',
-					light: '#FFEB3B',
-					neutral: '#FFFFFF'
+					primary: '#1a1a1a',
+					secondary: '#ffd700',
+					accent: '#fbbf24',
+					light: '#fef3c7',
+					neutral: '#ffffff',
+					dark: '#0f0f0f',
+					gradient: {
+						start: '#1a1a1a',
+						middle: '#2d2d2d',
+						end: '#1a1a1a'
+					}
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
@@ -96,7 +102,7 @@ export default {
 				'fade-in': {
 					'0%': {
 						opacity: '0',
-						transform: 'translateY(10px)'
+						transform: 'translateY(20px)'
 					},
 					'100%': {
 						opacity: '1',
@@ -110,13 +116,48 @@ export default {
 					'100%': {
 						transform: 'translateX(0)'
 					}
+				},
+				'scale-in': {
+					'0%': {
+						transform: 'scale(0.95)',
+						opacity: '0'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					}
+				},
+				'bounce-in': {
+					'0%': {
+						transform: 'scale(0.3)',
+						opacity: '0'
+					},
+					'50%': {
+						transform: 'scale(1.05)'
+					},
+					'70%': {
+						transform: 'scale(0.9)'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.3s ease-out',
-				'slide-in': 'slide-in 0.3s ease-out'
+				'fade-in': 'fade-in 0.5s ease-out',
+				'slide-in': 'slide-in 0.3s ease-out',
+				'scale-in': 'scale-in 0.3s ease-out',
+				'bounce-in': 'bounce-in 0.6s ease-out'
+			},
+			backgroundImage: {
+				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+				'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+				'logistics-gradient': 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
+				'yellow-gradient': 'linear-gradient(135deg, #ffd700 0%, #fbbf24 100%)',
+				'card-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 247, 153, 0.1) 100%)'
 			}
 		}
 	},
