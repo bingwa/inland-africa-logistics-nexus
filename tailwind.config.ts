@@ -54,11 +54,11 @@ export default {
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				logistics: {
-					primary: '#1B4332',
-					secondary: '#2D5D47',
-					accent: '#D4AF37',
-					light: '#95D5B2',
-					neutral: '#F8F9FA'
+					primary: '#000000',
+					secondary: '#FFD700',
+					accent: '#FFC107',
+					light: '#FFEB3B',
+					neutral: '#FFFFFF'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
