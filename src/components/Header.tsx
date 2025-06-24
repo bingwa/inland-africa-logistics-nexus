@@ -1,9 +1,7 @@
 
-import { Bell, User, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/useAuth";
+import { User, LogOut, Bell } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,47 +10,68 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 export const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const getInitials = (email: string) => {
+    return email.slice(0, 2).toUpperCase();
+  };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="border-b bg-white/80 backdrop-blur-sm px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <SidebarTrigger className="text-logistics-primary hover:bg-gray-100" />
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search trucks, routes, shipments..."
-              className="pl-10 w-80"
-            />
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Welcome back, {user?.user_metadata?.full_name || user?.email}
+          </h2>
         </div>
         
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+          <Button variant="ghost" size="sm" className="relative">
+            <Bell className="w-4 h-4" />
+            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs bg-red-500">
+              3
+            </Badge>
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-logistics-primary rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-sm font-medium">{user?.name}</span>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="/placeholder-avatar.jpg" alt="Avatar" />
+                  <AvatarFallback className="bg-gradient-to-r from-orange-400 to-red-500 text-white">
+                    {user?.email ? getInitials(user.email) : 'U'}
+                  </AvatarFallback>
+                </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {user?.user_metadata?.full_name || 'User'}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile Settings</DropdownMenuItem>
-              <DropdownMenuItem>System Preferences</DropdownMenuItem>
+              <DropdownMenuItem>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} className="text-red-600">
-                Sign Out
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

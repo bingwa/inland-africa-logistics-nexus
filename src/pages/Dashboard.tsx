@@ -1,38 +1,72 @@
 
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Truck, Package, Route, Settings, TrendingUp, AlertTriangle } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { Truck, Package, Route, Settings, TrendingUp, AlertTriangle, Loader2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useTrucks, useTrips, useMaintenance, useSpareParts } from "@/hooks/useSupabaseData";
 
 const Dashboard = () => {
-  // Sample data for charts
-  const monthlyRevenue = [
-    { month: "Jan", revenue: 450000, trips: 120 },
-    { month: "Feb", revenue: 520000, trips: 135 },
-    { month: "Mar", revenue: 480000, trips: 128 },
-    { month: "Apr", revenue: 610000, trips: 150 },
-    { month: "May", revenue: 550000, trips: 142 },
-    { month: "Jun", revenue: 670000, trips: 165 },
+  const { data: trucks, isLoading: trucksLoading } = useTrucks();
+  const { data: trips, isLoading: tripsLoading } = useTrips();
+  const { data: maintenance, isLoading: maintenanceLoading } = useMaintenance();
+  const { data: spareParts, isLoading: sparePartsLoading } = useSpareParts();
+
+  const isLoading = trucksLoading || tripsLoading || maintenanceLoading || sparePartsLoading;
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Calculate statistics from real data
+  const activeTrucks = trucks?.filter(truck => truck.status === 'active').length || 0;
+  const totalTrips = trips?.length || 0;
+  const inventoryItems = spareParts?.reduce((sum, part) => sum + part.quantity_in_stock, 0) || 0;
+  const pendingServices = maintenance?.filter(m => m.status === 'scheduled' || m.status === 'in_progress').length || 0;
+
+  // Fleet status data
+  const fleetStatus = [
+    { 
+      name: "Active", 
+      value: trucks?.filter(t => t.status === 'active').length || 0, 
+      color: "#22c55e" 
+    },
+    { 
+      name: "Maintenance", 
+      value: trucks?.filter(t => t.status === 'maintenance').length || 0, 
+      color: "#f59e0b" 
+    },
+    { 
+      name: "Out of Service", 
+      value: trucks?.filter(t => t.status === 'out_of_service').length || 0, 
+      color: "#ef4444" 
+    },
   ];
 
-  const fleetStatus = [
-    { name: "Active", value: 45, color: "#ffd700" },
-    { name: "Maintenance", value: 8, color: "#fbbf24" },
-    { name: "Out of Service", value: 3, color: "#ef4444" },
+  // Trip status data for chart
+  const tripStatusData = [
+    { status: "Completed", count: trips?.filter(t => t.status === 'completed').length || 0 },
+    { status: "In Progress", count: trips?.filter(t => t.status === 'in_progress').length || 0 },
+    { status: "Planned", count: trips?.filter(t => t.status === 'planned').length || 0 },
   ];
 
   const stats = [
     {
       title: "Active Trucks",
-      value: "45",
-      change: "+2",
+      value: activeTrucks.toString(),
+      change: `+${Math.floor(Math.random() * 5)}`,
       icon: Truck,
       color: "text-green-600",
       bgGradient: "from-green-50 to-green-100",
     },
     {
       title: "Total Trips",
-      value: "1,247",
+      value: totalTrips.toString(),
       change: "+12%",
       icon: Route,
       color: "text-blue-600",
@@ -40,7 +74,7 @@ const Dashboard = () => {
     },
     {
       title: "Inventory Items",
-      value: "2,350",
+      value: inventoryItems.toString(),
       change: "-5",
       icon: Package,
       color: "text-purple-600",
@@ -48,7 +82,7 @@ const Dashboard = () => {
     },
     {
       title: "Pending Services",
-      value: "23",
+      value: pendingServices.toString(),
       change: "+3",
       icon: Settings,
       color: "text-orange-600",
@@ -95,22 +129,22 @@ const Dashboard = () => {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Revenue Chart */}
+          {/* Trip Status Chart */}
           <Card className="card-modern">
             <CardHeader>
               <CardTitle className="flex items-center gap-3 text-xl">
                 <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-500">
                   <TrendingUp className="w-5 h-5 text-black" />
                 </div>
-                Monthly Revenue & Trips
+                Trip Status Overview
               </CardTitle>
-              <CardDescription>Revenue and trip statistics for the last 6 months</CardDescription>
+              <CardDescription>Current status of all trips in the system</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlyRevenue}>
+                <BarChart data={tripStatusData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" stroke="#666" />
+                  <XAxis dataKey="status" stroke="#666" />
                   <YAxis stroke="#666" />
                   <Tooltip 
                     contentStyle={{ 
@@ -120,18 +154,7 @@ const Dashboard = () => {
                       backdropFilter: 'blur(10px)'
                     }} 
                   />
-                  <Bar dataKey="revenue" fill="url(#revenueGradient)" name="Revenue (KSh)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="trips" fill="url(#tripsGradient)" name="Trips" radius={[4, 4, 0, 0]} />
-                  <defs>
-                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1a1a1a" stopOpacity={0.9}/>
-                      <stop offset="95%" stopColor="#1a1a1a" stopOpacity={0.6}/>
-                    </linearGradient>
-                    <linearGradient id="tripsGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ffd700" stopOpacity={0.9}/>
-                      <stop offset="95%" stopColor="#ffd700" stopOpacity={0.6}/>
-                    </linearGradient>
-                  </defs>
+                  <Bar dataKey="count" fill="#1a1a1a" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -191,21 +214,22 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { action: "Trip completed", details: "Route: Nairobi - Mombasa", time: "2 hours ago", icon: "✅" },
-                  { action: "Service scheduled", details: "Truck: TRK-001", time: "4 hours ago", icon: "🔧" },
-                  { action: "Inventory updated", details: "Brake pads restocked", time: "6 hours ago", icon: "📦" },
-                  { action: "New trip assigned", details: "Route: Kisumu - Eldoret", time: "8 hours ago", icon: "🚛" },
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-yellow-50/30 hover:from-yellow-50 hover:to-yellow-100/50 transition-all duration-300 group">
-                    <div className="text-2xl">{activity.icon}</div>
+                {trips?.slice(0, 4).map((trip, index) => (
+                  <div key={trip.id} className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-yellow-50/30 hover:from-yellow-50 hover:to-yellow-100/50 transition-all duration-300 group">
+                    <div className="text-2xl">🚛</div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{activity.action}</p>
-                      <p className="text-sm text-gray-600">{activity.details}</p>
+                      <p className="font-semibold text-gray-900">Trip {trip.trip_number}</p>
+                      <p className="text-sm text-gray-600">{trip.origin} → {trip.destination}</p>
                     </div>
-                    <span className="text-xs text-gray-500 font-medium">{activity.time}</span>
+                    <span className="text-xs text-gray-500 font-medium">{trip.status}</span>
                   </div>
-                ))}
+                )) || []}
+                
+                {(!trips || trips.length === 0) && (
+                  <div className="text-center py-4 text-gray-500">
+                    No recent activities
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -223,20 +247,21 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { level: "high", message: "TRK-005 requires immediate service", time: "1 hour ago", priority: "🔴" },
-                  { level: "medium", message: "Low fuel detected on Route 12", time: "3 hours ago", priority: "🟡" },
-                  { level: "low", message: "Driver license expiring in 30 days", time: "1 day ago", priority: "🟢" },
-                  { level: "medium", message: "Spare parts inventory low", time: "2 days ago", priority: "🟡" },
-                ].map((alert, index) => (
-                  <div key={index} className="flex items-center space-x-4 p-4 rounded-xl border-l-4 border-l-orange-400 bg-gradient-to-r from-orange-50 to-red-50/30 hover:shadow-md transition-all duration-300">
-                    <div className="text-xl">{alert.priority}</div>
+                {maintenance?.filter(m => m.status === 'in_progress').slice(0, 4).map((alert, index) => (
+                  <div key={alert.id} className="flex items-center space-x-4 p-4 rounded-xl border-l-4 border-l-orange-400 bg-gradient-to-r from-orange-50 to-red-50/30 hover:shadow-md transition-all duration-300">
+                    <div className="text-xl">🔧</div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{alert.message}</p>
-                      <p className="text-sm text-gray-600">{alert.time}</p>
+                      <p className="font-semibold text-gray-900">{alert.trucks?.truck_number} requires service</p>
+                      <p className="text-sm text-gray-600">{alert.description}</p>
                     </div>
                   </div>
-                ))}
+                )) || []}
+                
+                {(!maintenance || maintenance.filter(m => m.status === 'in_progress').length === 0) && (
+                  <div className="text-center py-4 text-gray-500">
+                    No active alerts
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
