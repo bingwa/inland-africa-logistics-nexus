@@ -1,53 +1,90 @@
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, Calendar, Shield, Edit2, Save, X } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Calendar, 
+  Shield, 
+  Edit3, 
+  Save, 
+  X,
+  Camera,
+  Settings,
+  Bell,
+  Lock,
+  Activity,
+  Award,
+  Briefcase
+} from "lucide-react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-
-interface ProfileFormData {
-  full_name: string;
-  phone: string;
-}
+import { AdminAccessControl } from "@/components/AdminAccessControl";
 
 const Profile = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const { register, handleSubmit, reset } = useForm<ProfileFormData>();
+  const [activeTab, setActiveTab] = useState('profile');
+  const [profileData, setProfileData] = useState({
+    fullName: 'John Adebayo',
+    email: 'john.adebayo@translogistics.co.ke',
+    phone: '+254 712 345 678',
+    role: 'Fleet Manager',
+    department: 'Operations',
+    employeeId: 'TL-2024-001',
+    joinDate: '2024-01-15',
+    location: 'Nairobi, Kenya',
+    bio: 'Experienced fleet manager with 8+ years in logistics and transportation management. Specialized in route optimization and driver performance management.',
+    address: 'Westlands, Nairobi',
+    emergencyContact: '+254 722 987 654',
+    licenseNumber: 'DL-123456789',
+    notifications: {
+      email: true,
+      sms: false,
+      push: true
+    }
+  });
 
-  const getInitials = (email: string) => {
-    return email?.slice(0, 2).toUpperCase() || 'U';
-  };
+  const { toast } = useToast();
 
-  const onSubmit = async (data: ProfileFormData) => {
-    // Here you would update the profile in Supabase
+  const handleSave = () => {
+    setIsEditing(false);
     toast({
       title: "Profile Updated",
-      description: "Your profile has been successfully updated.",
-    });
-    setIsEditing(false);
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
-    reset({
-      full_name: user?.user_metadata?.full_name || '',
-      phone: user?.user_metadata?.phone || ''
+      description: "Your profile information has been successfully updated.",
     });
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    reset();
+    // Reset form data
   };
+
+  const getRoleColor = (role: string) => {
+    const colors = {
+      'Fleet Manager': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+      'Admin': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+      'Driver': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+      'Supervisor': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+    };
+    return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800 dark:bg-gray-800/20 dark:text-gray-400';
+  };
+
+  const tabs = [
+    { id: 'profile', label: 'Profile Information', icon: User },
+    { id: 'settings', label: 'Account Settings', icon: Settings },
+    { id: 'security', label: 'Security', icon: Lock },
+    { id: 'activity', label: 'Activity Log', icon: Activity }
+  ];
 
   return (
     <Layout>
@@ -57,234 +94,342 @@ const Profile = () => {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
               <User className="w-6 h-6 sm:w-8 sm:h-8" />
-              Profile Settings
+              User Profile
             </h1>
             <p className="text-muted-foreground">Manage your account information and preferences</p>
           </div>
+          <div className="flex gap-2">
+            {!isEditing ? (
+              <Button onClick={() => setIsEditing(true)} className="bg-primary hover:bg-primary/90">
+                <Edit3 className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={handleCancel}>
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Card */}
-          <Card className="lg:col-span-1 bg-card">
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
-                  <AvatarImage src="/placeholder-avatar.jpg" alt="Profile" />
-                  <AvatarFallback className="bg-gradient-to-r from-orange-400 to-red-500 text-white text-xl">
-                    {user?.email ? getInitials(user.email) : 'U'}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <CardTitle className="text-xl">
-                {user?.user_metadata?.full_name || 'User'}
-              </CardTitle>
-              <CardDescription>{user?.email}</CardDescription>
-              <Badge className="w-fit mx-auto bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                Active Account
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 text-sm">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Email verified</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  Joined {new Date(user?.created_at || '').toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Shield className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Standard User</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Account Information */}
-          <Card className="lg:col-span-2 bg-card">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Account Information</CardTitle>
-                <CardDescription>Update your personal details</CardDescription>
-              </div>
-              {!isEditing ? (
-                <Button variant="outline" onClick={handleEdit} className="hidden sm:flex">
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleCancel}>
-                    <X className="w-4 h-4 mr-2" />
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </CardHeader>
-            <CardContent>
-              {/* Mobile Edit Button */}
-              {!isEditing && (
-                <Button variant="outline" onClick={handleEdit} className="w-full sm:hidden mb-4">
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
-              )}
-              
-              {isEditing ? (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="full_name">Full Name</Label>
-                      <Input
-                        id="full_name"
-                        {...register("full_name")}
-                        placeholder="Enter your full name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={user?.email}
-                        disabled
-                        className="bg-muted"
-                      />
-                      <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        {...register("phone")}
-                        placeholder="Enter your phone number"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="role">Role</Label>
-                      <Input
-                        id="role"
-                        value="Standard User"
-                        disabled
-                        className="bg-muted"
-                      />
-                      <p className="text-xs text-muted-foreground">Role is managed by administrators</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <Button type="submit" className="w-full sm:w-auto">
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Changes
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Profile Summary Card */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-6">
+              <CardContent className="p-6 text-center">
+                <div className="relative inline-block mb-4">
+                  <Avatar className="w-24 h-24 mx-auto">
+                    <AvatarImage src="" alt={profileData.fullName} />
+                    <AvatarFallback className="text-xl font-bold bg-primary text-primary-foreground">
+                      {profileData.fullName.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isEditing && (
+                    <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0">
+                      <Camera className="w-4 h-4" />
                     </Button>
+                  )}
+                </div>
+                
+                <h3 className="text-lg font-bold text-foreground">{profileData.fullName}</h3>
+                <p className="text-sm text-muted-foreground mb-2">{profileData.email}</p>
+                
+                <Badge className={getRoleColor(profileData.role) + " mb-4"}>
+                  <Shield className="w-3 h-3 mr-1" />
+                  {profileData.role}
+                </Badge>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Briefcase className="w-4 h-4" />
+                    <span>{profileData.department}</span>
                   </div>
-                </form>
-              ) : (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 gap-6">
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
-                      <p className="text-sm mt-1 text-foreground">{user?.user_metadata?.full_name || 'Not set'}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Email Address</Label>
-                      <p className="text-sm mt-1 text-foreground">{user?.email}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
-                      <p className="text-sm mt-1 text-foreground">{user?.user_metadata?.phone || 'Not set'}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Role</Label>
-                      <p className="text-sm mt-1 text-foreground">Standard User</p>
-                    </div>
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    <span>Joined {new Date(profileData.joinDate).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    <span>{profileData.location}</span>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Account Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          <Card className="bg-card">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Login Sessions</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground">24</p>
-                  <p className="text-sm text-muted-foreground">This month</p>
-                </div>
-                <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Account Age</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground">
-                    {Math.floor((Date.now() - new Date(user?.created_at || '').getTime()) / (1000 * 60 * 60 * 24))} days
-                  </p>
-                  <p className="text-sm text-muted-foreground">Since registration</p>
-                </div>
-                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Security Level</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground">High</p>
-                  <p className="text-sm text-muted-foreground">Email verified</p>
-                </div>
-                <User className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {/* Tab Navigation */}
+            <div className="flex flex-wrap gap-1 mb-6 p-1 bg-muted rounded-lg">
+              {tabs.map(tab => (
+                <Button
+                  key={tab.id}
+                  variant={activeTab === tab.id ? "default" : "ghost"}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <tab.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </Button>
+              ))}
+            </div>
 
-        {/* Security Section */}
-        <Card className="bg-card">
-          <CardHeader>
-            <CardTitle>Security & Privacy</CardTitle>
-            <CardDescription>Manage your account security settings</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
-              <div>
-                <h4 className="font-medium">Email Verification</h4>
-                <p className="text-sm text-muted-foreground">Your email address has been verified</p>
+            {/* Profile Information Tab */}
+            {activeTab === 'profile' && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Personal Information</CardTitle>
+                    <CardDescription>Your basic profile and contact information</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="fullName">Full Name</Label>
+                        <Input
+                          id="fullName"
+                          value={profileData.fullName}
+                          onChange={(e) => setProfileData({...profileData, fullName: e.target.value})}
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="employeeId">Employee ID</Label>
+                        <Input
+                          id="employeeId"
+                          value={profileData.employeeId}
+                          disabled
+                          className="bg-muted"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileData.email}
+                          onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          value={profileData.phone}
+                          onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="role">Role</Label>
+                        <Select value={profileData.role} onValueChange={(value) => setProfileData({...profileData, role: value})} disabled={!isEditing}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Fleet Manager">Fleet Manager</SelectItem>
+                            <SelectItem value="Driver">Driver</SelectItem>
+                            <SelectItem value="Supervisor">Supervisor</SelectItem>
+                            <SelectItem value="Admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="department">Department</Label>
+                        <Input
+                          id="department"
+                          value={profileData.department}
+                          onChange={(e) => setProfileData({...profileData, department: e.target.value})}
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Address & Emergency Contact</CardTitle>
+                    <CardDescription>Additional contact information</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="address">Address</Label>
+                        <Textarea
+                          id="address"
+                          value={profileData.address}
+                          onChange={(e) => setProfileData({...profileData, address: e.target.value})}
+                          disabled={!isEditing}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="emergencyContact">Emergency Contact</Label>
+                          <Input
+                            id="emergencyContact"
+                            value={profileData.emergencyContact}
+                            onChange={(e) => setProfileData({...profileData, emergencyContact: e.target.value})}
+                            disabled={!isEditing}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="licenseNumber">License Number</Label>
+                          <Input
+                            id="licenseNumber"
+                            value={profileData.licenseNumber}
+                            onChange={(e) => setProfileData({...profileData, licenseNumber: e.target.value})}
+                            disabled={!isEditing}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Professional Bio</CardTitle>
+                    <CardDescription>Tell us about your experience and expertise</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      value={profileData.bio}
+                      onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                      disabled={!isEditing}
+                      rows={4}
+                      placeholder="Share your professional background, experience, and expertise..."
+                    />
+                  </CardContent>
+                </Card>
               </div>
-              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">Verified</Badge>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
-              <div>
-                <h4 className="font-medium">Password</h4>
-                <p className="text-sm text-muted-foreground">Last updated recently</p>
+            )}
+
+            {/* Account Settings Tab */}
+            {activeTab === 'settings' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Notification Preferences</CardTitle>
+                  <CardDescription>Choose how you want to receive notifications</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        <div>
+                          <p className="font-medium">Email Notifications</p>
+                          <p className="text-sm text-muted-foreground">Receive updates via email</p>
+                        </div>
+                      </div>
+                      <input type="checkbox" checked={profileData.notifications.email} readOnly />
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        <div>
+                          <p className="font-medium">SMS Notifications</p>
+                          <p className="text-sm text-muted-foreground">Receive updates via SMS</p>
+                        </div>
+                      </div>
+                      <input type="checkbox" checked={profileData.notifications.sms} readOnly />
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4" />
+                        <div>
+                          <p className="font-medium">Push Notifications</p>
+                          <p className="text-sm text-muted-foreground">Receive browser notifications</p>
+                        </div>
+                      </div>
+                      <input type="checkbox" checked={profileData.notifications.push} readOnly />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Security Tab */}
+            {activeTab === 'security' && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Password & Security</CardTitle>
+                    <CardDescription>Manage your account security settings</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button className="w-full sm:w-auto">
+                      <Lock className="w-4 h-4 mr-2" />
+                      Change Password
+                    </Button>
+                    <Separator />
+                    <div>
+                      <p className="font-medium mb-2">Two-Factor Authentication</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Add an extra layer of security to your account
+                      </p>
+                      <Button variant="outline">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Enable 2FA
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <AdminAccessControl userRole="user" requiredRole="admin">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Admin Security Settings</CardTitle>
+                      <CardDescription>Advanced security configurations</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p>Advanced admin security settings would appear here.</p>
+                    </CardContent>
+                  </Card>
+                </AdminAccessControl>
               </div>
-              <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                Change Password
-              </Button>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
-              <div>
-                <h4 className="font-medium">Two-Factor Authentication</h4>
-                <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
-              </div>
-              <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                Enable 2FA
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            )}
+
+            {/* Activity Log Tab */}
+            {activeTab === 'activity' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                  <CardDescription>Your recent system activities and login history</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { action: 'Profile updated', time: '2 hours ago', icon: User },
+                      { action: 'Password changed', time: '1 day ago', icon: Lock },
+                      { action: 'Login from Nairobi', time: '2 days ago', icon: MapPin },
+                      { action: 'Trip created', time: '3 days ago', icon: Activity }
+                    ].map((activity, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                        <activity.icon className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{activity.action}</p>
+                          <p className="text-sm text-muted-foreground">{activity.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
       </div>
     </Layout>
   );

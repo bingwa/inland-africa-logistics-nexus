@@ -1,4 +1,3 @@
-
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,9 +7,11 @@ import { Download, Calendar, FileText, TrendingUp, DollarSign, Truck, MapPin, Lo
 import { useState } from "react";
 import { useTrucks, useTrips, useFuelRecords } from "@/hooks/useSupabaseData";
 import { useToast } from "@/hooks/use-toast";
+import { CustomReportGenerator } from "@/components/CustomReportGenerator";
 
 const Reports = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showCustomReportGenerator, setShowCustomReportGenerator] = useState(false);
   const { data: trucks, isLoading: trucksLoading } = useTrucks();
   const { data: trips, isLoading: tripsLoading } = useTrips();
   const { data: fuelRecords, isLoading: fuelRecordsLoading } = useFuelRecords();
@@ -69,10 +70,7 @@ const Reports = () => {
   };
 
   const handleGenerateCustomReport = () => {
-    toast({
-      title: "Custom Report Generator",
-      description: "Custom report builder will be available soon.",
-    });
+    setShowCustomReportGenerator(true);
   };
 
   if (isLoading) {
@@ -400,6 +398,11 @@ const Reports = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Custom Report Generator Modal */}
+        {showCustomReportGenerator && (
+          <CustomReportGenerator onClose={() => setShowCustomReportGenerator(false)} />
+        )}
       </div>
     </Layout>
   );
