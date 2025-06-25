@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { User, Mail, Phone, Calendar, Shield, Edit2, Save, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -54,22 +53,22 @@ const Profile = () => {
     <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-black flex items-center gap-3">
-              <User className="w-8 h-8" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
+              <User className="w-6 h-6 sm:w-8 sm:h-8" />
               Profile Settings
             </h1>
-            <p className="text-gray-600">Manage your account information and preferences</p>
+            <p className="text-muted-foreground">Manage your account information and preferences</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Card */}
-          <Card className="lg:col-span-1">
+          <Card className="lg:col-span-1 bg-card">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
-                <Avatar className="h-24 w-24">
+                <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
                   <AvatarImage src="/placeholder-avatar.jpg" alt="Profile" />
                   <AvatarFallback className="bg-gradient-to-r from-orange-400 to-red-500 text-white text-xl">
                     {user?.email ? getInitials(user.email) : 'U'}
@@ -80,37 +79,37 @@ const Profile = () => {
                 {user?.user_metadata?.full_name || 'User'}
               </CardTitle>
               <CardDescription>{user?.email}</CardDescription>
-              <Badge className="w-fit mx-auto bg-green-100 text-green-800">
+              <Badge className="w-fit mx-auto bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
                 Active Account
               </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3 text-sm">
-                <Mail className="w-4 h-4 text-gray-500" />
-                <span className="text-gray-600">Email verified</span>
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Email verified</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <span className="text-gray-600">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   Joined {new Date(user?.created_at || '').toLocaleDateString()}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <Shield className="w-4 h-4 text-gray-500" />
-                <span className="text-gray-600">Standard User</span>
+                <Shield className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Standard User</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Account Information */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 bg-card">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Account Information</CardTitle>
                 <CardDescription>Update your personal details</CardDescription>
               </div>
               {!isEditing ? (
-                <Button variant="outline" onClick={handleEdit}>
+                <Button variant="outline" onClick={handleEdit} className="hidden sm:flex">
                   <Edit2 className="w-4 h-4 mr-2" />
                   Edit Profile
                 </Button>
@@ -124,9 +123,17 @@ const Profile = () => {
               )}
             </CardHeader>
             <CardContent>
+              {/* Mobile Edit Button */}
+              {!isEditing && (
+                <Button variant="outline" onClick={handleEdit} className="w-full sm:hidden mb-4">
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              )}
+              
               {isEditing ? (
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="full_name">Full Name</Label>
                       <Input
@@ -142,9 +149,9 @@ const Profile = () => {
                         type="email"
                         value={user?.email}
                         disabled
-                        className="bg-gray-50"
+                        className="bg-muted"
                       />
-                      <p className="text-xs text-gray-500">Email cannot be changed</p>
+                      <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number</Label>
@@ -160,13 +167,13 @@ const Profile = () => {
                         id="role"
                         value="Standard User"
                         disabled
-                        className="bg-gray-50"
+                        className="bg-muted"
                       />
-                      <p className="text-xs text-gray-500">Role is managed by administrators</p>
+                      <p className="text-xs text-muted-foreground">Role is managed by administrators</p>
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <Button type="submit">
+                    <Button type="submit" className="w-full sm:w-auto">
                       <Save className="w-4 h-4 mr-2" />
                       Save Changes
                     </Button>
@@ -174,22 +181,22 @@ const Profile = () => {
                 </form>
               ) : (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">Full Name</Label>
-                      <p className="text-sm mt-1">{user?.user_metadata?.full_name || 'Not set'}</p>
+                      <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
+                      <p className="text-sm mt-1 text-foreground">{user?.user_metadata?.full_name || 'Not set'}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">Email Address</Label>
-                      <p className="text-sm mt-1">{user?.email}</p>
+                      <Label className="text-sm font-medium text-muted-foreground">Email Address</Label>
+                      <p className="text-sm mt-1 text-foreground">{user?.email}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">Phone Number</Label>
-                      <p className="text-sm mt-1">{user?.user_metadata?.phone || 'Not set'}</p>
+                      <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
+                      <p className="text-sm mt-1 text-foreground">{user?.user_metadata?.phone || 'Not set'}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">Role</Label>
-                      <p className="text-sm mt-1">Standard User</p>
+                      <Label className="text-sm font-medium text-muted-foreground">Role</Label>
+                      <p className="text-sm mt-1 text-foreground">Standard User</p>
                     </div>
                   </div>
                 </div>
@@ -199,80 +206,80 @@ const Profile = () => {
         </div>
 
         {/* Account Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardContent className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          <Card className="bg-card">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Login Sessions</p>
-                  <p className="text-2xl font-bold text-black">24</p>
-                  <p className="text-sm text-gray-500">This month</p>
+                  <p className="text-sm font-medium text-muted-foreground">Login Sessions</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">24</p>
+                  <p className="text-sm text-muted-foreground">This month</p>
                 </div>
-                <Shield className="w-8 h-8 text-blue-500" />
+                <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardContent className="p-6">
+          <Card className="bg-card">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Account Age</p>
-                  <p className="text-2xl font-bold text-black">
+                  <p className="text-sm font-medium text-muted-foreground">Account Age</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">
                     {Math.floor((Date.now() - new Date(user?.created_at || '').getTime()) / (1000 * 60 * 60 * 24))} days
                   </p>
-                  <p className="text-sm text-gray-500">Since registration</p>
+                  <p className="text-sm text-muted-foreground">Since registration</p>
                 </div>
-                <Calendar className="w-8 h-8 text-green-500" />
+                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardContent className="p-6">
+          <Card className="bg-card">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Security Level</p>
-                  <p className="text-2xl font-bold text-black">High</p>
-                  <p className="text-sm text-gray-500">Email verified</p>
+                  <p className="text-sm font-medium text-muted-foreground">Security Level</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">High</p>
+                  <p className="text-sm text-muted-foreground">Email verified</p>
                 </div>
-                <User className="w-8 h-8 text-orange-500" />
+                <User className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Security Section */}
-        <Card>
+        <Card className="bg-card">
           <CardHeader>
             <CardTitle>Security & Privacy</CardTitle>
             <CardDescription>Manage your account security settings</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
               <div>
                 <h4 className="font-medium">Email Verification</h4>
-                <p className="text-sm text-gray-600">Your email address has been verified</p>
+                <p className="text-sm text-muted-foreground">Your email address has been verified</p>
               </div>
-              <Badge className="bg-green-100 text-green-800">Verified</Badge>
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">Verified</Badge>
             </div>
             
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
               <div>
                 <h4 className="font-medium">Password</h4>
-                <p className="text-sm text-gray-600">Last updated recently</p>
+                <p className="text-sm text-muted-foreground">Last updated recently</p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 Change Password
               </Button>
             </div>
             
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
               <div>
                 <h4 className="font-medium">Two-Factor Authentication</h4>
-                <p className="text-sm text-gray-600">Add an extra layer of security</p>
+                <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 Enable 2FA
               </Button>
             </div>

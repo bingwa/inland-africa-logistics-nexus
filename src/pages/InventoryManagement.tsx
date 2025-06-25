@@ -4,74 +4,47 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Package, Search, Plus, AlertTriangle, TrendingDown, TrendingUp } from "lucide-react";
+import { Package, Search, Plus, AlertTriangle, TrendingDown, TrendingUp, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useSpareParts } from "@/hooks/useSupabaseData";
 
 const InventoryManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { data: spareParts, isLoading, error } = useSpareParts();
 
-  const inventoryItems = [
-    {
-      id: "INV-001",
-      name: "Brake Pads",
-      category: "Brakes",
-      sku: "BP-HD-001",
-      currentStock: 45,
-      minStock: 20,
-      maxStock: 100,
-      unitPrice: 85,
-      supplier: "AutoParts Nigeria",
-      lastRestocked: "2024-06-15",
-      status: "In Stock",
-    },
-    {
-      id: "INV-002",
-      name: "Engine Oil (15W-40)",
-      category: "Fluids",
-      sku: "EO-15W40-5L",
-      currentStock: 8,
-      minStock: 15,
-      maxStock: 50,
-      unitPrice: 45,
-      supplier: "Mobil Nigeria",
-      lastRestocked: "2024-06-10",
-      status: "Low Stock",
-    },
-    {
-      id: "INV-003",
-      name: "Air Filter",
-      category: "Filters",
-      sku: "AF-HD-003",
-      currentStock: 0,
-      minStock: 10,
-      maxStock: 30,
-      unitPrice: 25,
-      supplier: "FilterTech Lagos",
-      lastRestocked: "2024-05-20",
-      status: "Out of Stock",
-    },
-    {
-      id: "INV-004",
-      name: "Hydraulic Hose",
-      category: "Hydraulics",
-      sku: "HH-20M-001",
-      currentStock: 25,
-      minStock: 10,
-      maxStock: 40,
-      unitPrice: 120,
-      supplier: "HydraulicPro",
-      lastRestocked: "2024-06-20",
-      status: "In Stock",
-    },
-  ];
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="text-center text-red-600">
+          Error loading inventory: {error.message}
+        </div>
+      </Layout>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "In Stock": return "bg-green-100 text-green-800";
-      case "Low Stock": return "bg-yellow-100 text-yellow-800";
-      case "Out of Stock": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "In Stock": return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
+      case "Low Stock": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
+      case "Out of Stock": return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800/20 dark:text-gray-400";
     }
+  };
+
+  const getStockStatus = (current: number, minimum: number) => {
+    if (current === 0) return "Out of Stock";
+    if (current <= minimum) return "Low Stock";
+    return "In Stock";
   };
 
   const getStockLevel = (current: number, min: number, max: number) => {
@@ -82,169 +55,177 @@ const InventoryManagement = () => {
     };
   };
 
-  const filteredItems = inventoryItems.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredItems = spareParts?.filter(item =>
+    item.part_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.part_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) || [];
+
+  const totalItems = spareParts?.reduce((sum, part) => sum + part.quantity_in_stock, 0) || 0;
+  const lowStockItems = spareParts?.filter(part => part.quantity_in_stock <= part.minimum_stock_level).length || 0;
+  const outOfStockItems = spareParts?.filter(part => part.quantity_in_stock === 0).length || 0;
+  const totalValue = spareParts?.reduce((sum, part) => sum + (part.quantity_in_stock * part.unit_price), 0) || 0;
 
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-logistics-primary flex items-center gap-3">
-              <Package className="w-8 h-8" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
+              <Package className="w-6 h-6 sm:w-8 sm:h-8" />
               Inventory & Spare Parts
             </h1>
-            <p className="text-gray-600">Manage spare parts inventory and stock levels</p>
+            <p className="text-muted-foreground">Manage spare parts inventory and stock levels</p>
           </div>
-          <Button className="bg-logistics-primary hover:bg-logistics-secondary">
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Add New Item
           </Button>
         </div>
 
         {/* Inventory Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="stats-card">
-            <CardContent className="p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <Card className="bg-card hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Items</p>
-                  <p className="text-2xl font-bold text-logistics-primary">2,350</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Items</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{totalItems.toLocaleString()}</p>
                 </div>
-                <Package className="w-8 h-8 text-logistics-accent" />
+                <Package className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="stats-card">
-            <CardContent className="p-6">
+          <Card className="bg-card hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
-                  <p className="text-2xl font-bold text-yellow-600">23</p>
+                  <p className="text-sm font-medium text-muted-foreground">Low Stock Items</p>
+                  <p className="text-xl sm:text-2xl font-bold text-yellow-600">{lowStockItems}</p>
                 </div>
-                <TrendingDown className="w-8 h-8 text-yellow-500" />
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="stats-card">
-            <CardContent className="p-6">
+          <Card className="bg-card hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Out of Stock</p>
-                  <p className="text-2xl font-bold text-red-600">8</p>
+                  <p className="text-sm font-medium text-muted-foreground">Out of Stock</p>
+                  <p className="text-xl sm:text-2xl font-bold text-red-600">{outOfStockItems}</p>
                 </div>
-                <AlertTriangle className="w-8 h-8 text-red-500" />
+                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="stats-card">
-            <CardContent className="p-6">
+          <Card className="bg-card hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Value</p>
-                  <p className="text-2xl font-bold text-green-600">₦2.4M</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Value</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-600">KSh {totalValue.toLocaleString()}</p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-green-500" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Search and Filter */}
-        <Card>
+        <Card className="bg-card">
           <CardHeader>
             <CardTitle>Inventory Overview</CardTitle>
             <CardDescription>Monitor and manage spare parts inventory</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search by name, SKU, or category..."
+                  placeholder="Search by name, part number, or category..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button variant="outline">Filter by Category</Button>
-              <Button variant="outline">Export</Button>
+              <div className="flex gap-2">
+                <Button variant="outline">Filter by Category</Button>
+                <Button variant="outline">Export</Button>
+              </div>
             </div>
 
             {/* Inventory Table */}
             <div className="space-y-4">
               {filteredItems.map((item) => {
-                const stockLevel = getStockLevel(item.currentStock, item.minStock, item.maxStock);
+                const stockLevel = getStockLevel(item.quantity_in_stock, item.minimum_stock_level, item.minimum_stock_level * 3);
+                const status = getStockStatus(item.quantity_in_stock, item.minimum_stock_level);
                 return (
-                  <div key={item.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between mb-4">
+                  <div key={item.id} className="border rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row items-start justify-between mb-4 gap-4">
                       <div>
-                        <h3 className="font-semibold text-logistics-primary text-lg">{item.name}</h3>
-                        <p className="text-sm text-gray-600">SKU: {item.sku} | Category: {item.category}</p>
+                        <h3 className="font-semibold text-foreground text-lg">{item.part_name}</h3>
+                        <p className="text-sm text-muted-foreground">Part #: {item.part_number} | Category: {item.category}</p>
                       </div>
-                      <Badge className={getStatusColor(item.status)}>
-                        {item.status}
+                      <Badge className={getStatusColor(status)}>
+                        {status}
                       </Badge>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                       <div>
-                        <p className="text-sm text-gray-600">Current Stock</p>
-                        <p className="font-bold text-2xl text-logistics-primary">{item.currentStock}</p>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <p className="text-sm text-muted-foreground">Current Stock</p>
+                        <p className="font-bold text-xl sm:text-2xl text-foreground">{item.quantity_in_stock}</p>
+                        <div className="w-full bg-muted rounded-full h-2 mt-2">
                           <div 
                             className={`h-2 rounded-full ${stockLevel.color}`}
                             style={{ width: `${Math.min(stockLevel.percentage, 100)}%` }}
                           ></div>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Min: {item.minStock} | Max: {item.maxStock}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Min: {item.minimum_stock_level}
                         </p>
                       </div>
                       
                       <div>
-                        <p className="text-sm text-gray-600">Unit Price</p>
-                        <p className="font-semibold text-lg">₦{item.unitPrice}</p>
-                        <p className="text-sm text-gray-500">Per unit</p>
+                        <p className="text-sm text-muted-foreground">Unit Price</p>
+                        <p className="font-semibold text-lg">KSh {item.unit_price.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Per unit</p>
                       </div>
                       
                       <div>
-                        <p className="text-sm text-gray-600">Total Value</p>
-                        <p className="font-semibold text-lg">₦{(item.currentStock * item.unitPrice).toLocaleString()}</p>
-                        <p className="text-sm text-gray-500">Current stock value</p>
+                        <p className="text-sm text-muted-foreground">Total Value</p>
+                        <p className="font-semibold text-lg">KSh {(item.quantity_in_stock * item.unit_price).toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Current stock value</p>
                       </div>
                       
                       <div>
-                        <p className="text-sm text-gray-600">Supplier</p>
-                        <p className="font-medium">{item.supplier}</p>
-                        <p className="text-sm text-gray-500">Last: {item.lastRestocked}</p>
+                        <p className="text-sm text-muted-foreground">Supplier</p>
+                        <p className="font-medium">{item.supplier || 'N/A'}</p>
+                        <p className="text-sm text-muted-foreground">Rating: {item.supplier_rating || 'N/A'}/5</p>
                       </div>
                     </div>
                     
-                    <div className="flex gap-2 pt-4 border-t">
-                      <Button size="sm" variant="outline">
+                    <div className="flex flex-wrap gap-2 pt-4 border-t">
+                      <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
                         View Details
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" className="flex-1 sm:flex-none">
                         Edit
                       </Button>
-                      <Button size="sm" className="bg-logistics-primary hover:bg-logistics-secondary">
+                      <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 sm:flex-none">
                         Restock
                       </Button>
-                      {item.status === "Low Stock" && (
-                        <Button size="sm" variant="outline" className="text-yellow-600 border-yellow-300">
+                      {status === "Low Stock" && (
+                        <Button size="sm" variant="outline" className="text-yellow-600 border-yellow-300 flex-1 sm:flex-none">
                           Generate PO
                         </Button>
                       )}
-                      {item.status === "Out of Stock" && (
-                        <Button size="sm" variant="outline" className="text-red-600 border-red-300">
+                      {status === "Out of Stock" && (
+                        <Button size="sm" variant="outline" className="text-red-600 border-red-300 flex-1 sm:flex-none">
                           Urgent Order
                         </Button>
                       )}
@@ -257,8 +238,8 @@ const InventoryManagement = () => {
         </Card>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-500" />
@@ -268,22 +249,27 @@ const InventoryManagement = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {inventoryItems.filter(item => item.status !== "In Stock").map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                {spareParts?.filter(item => item.quantity_in_stock <= item.minimum_stock_level).slice(0, 5).map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-gray-600">Stock: {item.currentStock} units</p>
+                      <p className="font-medium">{item.part_name}</p>
+                      <p className="text-sm text-muted-foreground">Stock: {item.quantity_in_stock} units</p>
                     </div>
-                    <Badge className={getStatusColor(item.status)}>
-                      {item.status}
+                    <Badge className={getStatusColor(getStockStatus(item.quantity_in_stock, item.minimum_stock_level))}>
+                      {getStockStatus(item.quantity_in_stock, item.minimum_stock_level)}
                     </Badge>
                   </div>
-                ))}
+                )) || []}
+                {(!spareParts || spareParts.filter(item => item.quantity_in_stock <= item.minimum_stock_level).length === 0) && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No critical alerts
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-card">
             <CardHeader>
               <CardTitle>Recent Stock Movements</CardTitle>
               <CardDescription>Latest inventory transactions</CardDescription>
@@ -291,15 +277,16 @@ const InventoryManagement = () => {
             <CardContent>
               <div className="space-y-3">
                 {[
-                  { type: "In", item: "Brake Pads", quantity: "+25", date: "2024-06-28" },
-                  { type: "Out", item: "Engine Oil", quantity: "-12", date: "2024-06-28" },
-                  { type: "In", item: "Air Filters", quantity: "+30", date: "2024-06-27" },
-                  { type: "Out", item: "Hydraulic Hose", quantity: "-5", date: "2024-06-27" },
+                  { type: "In", item: "Brake Pads", quantity: "+25", date: "2024-12-28", value: "KSh 312,500" },
+                  { type: "Out", item: "Engine Oil Filter", quantity: "-12", date: "2024-12-28", value: "KSh 33,600" },
+                  { type: "In", item: "Air Filters", quantity: "+30", date: "2024-12-27", value: "KSh 126,000" },
+                  { type: "Out", item: "Tire", quantity: "-2", date: "2024-12-27", value: "KSh 70,000" },
                 ].map((movement, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div>
                       <p className="font-medium">{movement.item}</p>
-                      <p className="text-sm text-gray-600">{movement.date}</p>
+                      <p className="text-sm text-muted-foreground">{movement.date}</p>
+                      <p className="text-sm text-muted-foreground">{movement.value}</p>
                     </div>
                     <span className={`font-bold ${
                       movement.type === 'In' ? 'text-green-600' : 'text-red-600'
