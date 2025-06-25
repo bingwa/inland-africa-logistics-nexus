@@ -2,16 +2,19 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Search, Plus, Settings, Calendar, Gauge, User, Route, Loader2 } from "lucide-react";
+import { Truck, Plus, Settings, Calendar, Gauge, User, Route, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useTrucks, useUpdateTruckStatus } from "@/hooks/useSupabaseData";
 import { AddTruckForm } from "@/components/forms/AddTruckForm";
+import { TruckDetailsModal } from "@/components/TruckDetailsModal";
+import { FilterExportBar } from "@/components/FilterExportBar";
 
 const FleetManagement = () => {
-  const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedTruck, setSelectedTruck] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState<any>({});
   const { data: trucks, isLoading, error } = useTrucks();
   const updateTruckStatus = useUpdateTruckStatus();
 
@@ -44,19 +47,37 @@ const FleetManagement = () => {
     }
   };
 
-  const filteredTrucks = trucks?.filter(truck =>
-    truck.truck_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    truck.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    truck.make.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const handleStatusUpdate = async (truckId: string, newStatus: string) => {
+    await updateTruckStatus.mutateAsync({ id: truckId, status: newStatus });
+  };
+
+  const handleFilterApply = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
+  const handleExport = (format: string) => {
+    console.log(`Exporting fleet data in ${format} format`);
+  };
+
+  // Apply filters
+  let filteredTrucks = trucks || [];
+  
+  if (searchTerm) {
+    filteredTrucks = filteredTrucks.filter(truck =>
+      truck.truck_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      truck.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      truck.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      truck.license_plate.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  if (filters.status) {
+    filteredTrucks = filteredTrucks.filter(truck => truck.status === filters.status);
+  }
 
   const activeTrucks = trucks?.filter(truck => truck.status === 'active').length || 0;
   const totalMileage = trucks?.reduce((sum, truck) => sum + (truck.mileage || 0), 0) || 0;
   const estimatedFuelCost = Math.round(totalMileage * 0.15 * 150); // Convert to KSh
-
-  const handleStatusUpdate = async (truckId: string, newStatus: string) => {
-    await updateTruckStatus.mutateAsync({ id: truckId, status: newStatus });
-  };
 
   return (
     <Layout>
@@ -134,31 +155,26 @@ const FleetManagement = () => {
           </Card>
         </div>
 
-        {/* Search and Filter */}
+        {/* Fleet Overview */}
         <Card className="border-2 border-yellow-400/50 dark:border-yellow-600/50">
           <CardHeader>
             <CardTitle>Fleet Overview</CardTitle>
             <CardDescription>View and manage all trucks in your fleet</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search by truck ID, model, or make..."
-                  className="pl-10 border-yellow-300 focus:border-yellow-500 dark:border-yellow-600"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20">Filter</Button>
-                <Button variant="outline" className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20">Export</Button>
-              </div>
-            </div>
+            <FilterExportBar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              onFilterApply={handleFilterApply}
+              onExport={handleExport}
+              filterOptions={{
+                status: ['active', 'in_transit', 'maintenance'],
+                types: ['truck', 'trailer', 'van']
+              }}
+            />
 
             {/* Trucks Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mt-6">
               {filteredTrucks.map((truck) => (
                 <Card key={truck.id} className="hover:shadow-md transition-shadow border-2 border-yellow-300/50 dark:border-yellow-600/50">
                   <CardHeader className="pb-4">
@@ -200,7 +216,12 @@ const FleetManagement = () => {
                     )}
                     
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" className="flex-1 border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1 border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                        onClick={() => setSelectedTruck(truck)}
+                      >
                         View Details
                       </Button>
                       <Button 
@@ -220,6 +241,14 @@ const FleetManagement = () => {
 
         {showAddForm && (
           <AddTruckForm onClose={() => setShowAddForm(false)} />
+        )}
+
+        {selectedTruck && (
+          <TruckDetailsModal
+            truck={selectedTruck}
+            onClose={() => setSelectedTruck(null)}
+            onStatusUpdate={handleStatusUpdate}
+          />
         )}
       </div>
     </Layout>

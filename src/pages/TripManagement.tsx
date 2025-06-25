@@ -2,17 +2,22 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Route, Search, Plus, MapPin, Calendar, User, Truck, Clock, Loader2 } from "lucide-react";
+import { Route, Plus, MapPin, Calendar, User, Truck, Clock, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useTrips, useUpdateTripStatus } from "@/hooks/useSupabaseData";
 import { AddTripForm } from "@/components/forms/AddTripForm";
+import { TripDetailsModal } from "@/components/TripDetailsModal";
+import { LiveTripTracker } from "@/components/LiveTripTracker";
+import { FilterExportBar } from "@/components/FilterExportBar";
 import { useToast } from "@/hooks/use-toast";
 
 const TripManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<any>(null);
+  const [trackingTrip, setTrackingTrip] = useState<any>(null);
+  const [filters, setFilters] = useState<any>({});
   const { data: trips, isLoading, error } = useTrips();
   const updateTripStatus = useUpdateTripStatus();
   const { toast } = useToast();
@@ -46,20 +51,6 @@ const TripManagement = () => {
     }
   };
 
-  const filteredTrips = trips?.filter(trip =>
-    trip.trip_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trip.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trip.destination.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
-  const activeTrips = trips?.filter(trip => trip.status === 'in_progress').length || 0;
-  const completedToday = trips?.filter(trip => 
-    trip.status === 'completed' && 
-    new Date(trip.updated_at).toDateString() === new Date().toDateString()
-  ).length || 0;
-  const totalDistance = trips?.reduce((sum, trip) => sum + (trip.distance_km || 0), 0) || 0;
-  const onTimeRate = 94; // Mock data
-
   const handleStatusUpdate = async (tripId: string, newStatus: string) => {
     try {
       await updateTripStatus.mutateAsync({ id: tripId, status: newStatus });
@@ -68,19 +59,44 @@ const TripManagement = () => {
     }
   };
 
-  const handleTrackLive = (tripId: string) => {
-    toast({
-      title: "Live Tracking",
-      description: "Opening live tracking for this trip...",
-    });
+  const handleTrackLive = (trip: any) => {
+    setTrackingTrip(trip);
   };
 
-  const handleViewDetails = (tripId: string) => {
-    toast({
-      title: "Trip Details",
-      description: "Opening detailed trip information...",
-    });
+  const handleViewDetails = (trip: any) => {
+    setSelectedTrip(trip);
   };
+
+  const handleFilterApply = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
+  const handleExport = (format: string) => {
+    console.log(`Exporting trips in ${format} format`);
+  };
+
+  // Apply filters
+  let filteredTrips = trips || [];
+  
+  if (searchTerm) {
+    filteredTrips = filteredTrips.filter(trip =>
+      trip.trip_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.destination.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  if (filters.status) {
+    filteredTrips = filteredTrips.filter(trip => trip.status === filters.status);
+  }
+
+  const activeTrips = trips?.filter(trip => trip.status === 'in_progress').length || 0;
+  const completedToday = trips?.filter(trip => 
+    trip.status === 'completed' && 
+    new Date(trip.updated_at).toDateString() === new Date().toDateString()
+  ).length || 0;
+  const totalDistance = trips?.reduce((sum, trip) => sum + (trip.distance_km || 0), 0) || 0;
+  const onTimeRate = 94; // Mock data
 
   return (
     <Layout>
@@ -164,24 +180,19 @@ const TripManagement = () => {
             <CardDescription>Monitor ongoing and scheduled trips</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search by trip number, origin, or destination..."
-                  className="pl-10 border-yellow-300 focus:border-yellow-500 dark:border-yellow-600"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20">Filter</Button>
-                <Button variant="outline" className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20">Export</Button>
-              </div>
-            </div>
+            <FilterExportBar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              onFilterApply={handleFilterApply}
+              onExport={handleExport}
+              filterOptions={{
+                status: ['planned', 'in_progress', 'completed'],
+                locations: ['Nairobi', 'Mombasa', 'Kisumu', 'Eldoret']
+              }}
+            />
 
             {/* Trips List */}
-            <div className="space-y-4">
+            <div className="space-y-4 mt-6">
               {filteredTrips.map((trip) => (
                 <Card key={trip.id} className="hover:shadow-md transition-shadow border-2 border-yellow-300/50 dark:border-yellow-600/50">
                   <CardContent className="p-6">
@@ -243,7 +254,7 @@ const TripManagement = () => {
                         size="sm" 
                         variant="outline" 
                         className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                        onClick={() => handleViewDetails(trip.id)}
+                        onClick={() => handleViewDetails(trip)}
                       >
                         View Details
                       </Button>
@@ -251,7 +262,7 @@ const TripManagement = () => {
                         size="sm" 
                         variant="outline" 
                         className="border-blue-400 text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        onClick={() => handleTrackLive(trip.id)}
+                        onClick={() => handleTrackLive(trip)}
                       >
                         Track Live
                       </Button>
@@ -289,6 +300,20 @@ const TripManagement = () => {
 
         {showAddForm && (
           <AddTripForm onClose={() => setShowAddForm(false)} />
+        )}
+
+        {selectedTrip && (
+          <TripDetailsModal
+            trip={selectedTrip}
+            onClose={() => setSelectedTrip(null)}
+          />
+        )}
+
+        {trackingTrip && (
+          <LiveTripTracker
+            trip={trackingTrip}
+            onClose={() => setTrackingTrip(null)}
+          />
         )}
       </div>
     </Layout>
