@@ -3,7 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Inland Africa Logistics Design System - Modern Gradient Theme */
+/* Inland Africa Logistics Design System - Enhanced Dark Mode */
 
 @layer base {
   :root {
@@ -51,7 +51,7 @@
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
 
-    --card: 0 0% 3.9%;
+    --card: 0 0% 6.9%;
     --card-foreground: 0 0% 98%;
 
     --popover: 0 0% 3.9%;
@@ -63,7 +63,7 @@
     --secondary: 45 93% 47%;
     --secondary-foreground: 0 0% 9%;
 
-    --muted: 0 0% 14.9%;
+    --muted: 0 0% 12.9%;
     --muted-foreground: 0 0% 63.9%;
 
     --accent: 45 93% 47%;
@@ -101,11 +101,21 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold;
   }
+
+  /* Improved form styling for dark mode */
+  input, textarea, select {
+    @apply text-foreground;
+  }
+
+  /* Better dark mode support for select elements */
+  select option {
+    @apply bg-background text-foreground;
+  }
 }
 
 @layer components {
   .stats-card {
-    @apply bg-card/80 backdrop-blur-sm rounded-xl shadow-lg border border-border/50 hover:shadow-xl hover:scale-[1.02] transition-all duration-300;
+    @apply bg-card/90 backdrop-blur-sm rounded-xl shadow-lg border border-border/50 hover:shadow-xl hover:scale-[1.02] transition-all duration-300;
   }
 
   .nav-item {
@@ -157,9 +167,97 @@
   .glass-effect {
     @apply bg-card/25 backdrop-blur-sm border border-border/20;
   }
+
+  /* Enhanced dark mode readability */
+  .dark .bg-card {
+    @apply bg-slate-800/80;
+  }
+
+  .dark .border-border {
+    @apply border-slate-700;
+  }
+
+  .dark .text-muted-foreground {
+    @apply text-slate-400;
+  }
+
+  /* Better button contrast in dark mode */
+  .dark .btn-primary {
+    @apply bg-slate-100 text-slate-900 hover:bg-white;
+  }
+
+  .dark .btn-secondary {
+    @apply bg-yellow-500 text-black hover:bg-yellow-400;
+  }
+
+  /* Enhanced form styling for dark mode */
+  .dark input,
+  .dark textarea,
+  .dark select {
+    @apply bg-slate-800 border-slate-600 text-slate-100;
+  }
+
+  .dark input:focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    @apply border-yellow-500 ring-yellow-500/20;
+  }
+
+  /* Better dialog styling in dark mode */
+  .dark [role="dialog"] {
+    @apply bg-slate-900 border-slate-700;
+  }
+
+  /* Improved dropdown styling */
+  .dark [role="listbox"],
+  .dark [role="menu"] {
+    @apply bg-slate-800 border-slate-600 shadow-2xl;
+  }
+
+  /* Better table/card contrast in dark mode */
+  .dark .bg-muted\/50 {
+    @apply bg-slate-700/50;
+  }
+
+  .dark .hover\:bg-muted\/70:hover {
+    @apply bg-slate-600/70;
+  }
+
+  /* Enhanced badge colors for dark mode */
+  .dark .bg-green-100 {
+    @apply bg-green-900/30;
+  }
+  
+  .dark .bg-orange-100 {
+    @apply bg-orange-900/30;
+  }
+  
+  .dark .bg-red-100 {
+    @apply bg-red-900/30;
+  }
+  
+  .dark .bg-blue-100 {
+    @apply bg-blue-900/30;
+  }
+
+  .dark .text-green-800 {
+    @apply text-green-300;
+  }
+  
+  .dark .text-orange-800 {
+    @apply text-orange-300;
+  }
+  
+  .dark .text-red-800 {
+    @apply text-red-300;
+  }
+  
+  .dark .text-blue-800 {
+    @apply text-blue-300;
+  }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar with dark mode support */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -175,6 +273,10 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.dark ::-webkit-scrollbar-track {
+  @apply bg-slate-800;
 }
 
 /* Animations */
@@ -213,13 +315,30 @@
 
 /* Dark mode specific styles */
 .dark .stats-card {
-  @apply bg-card/80 border-border/30;
+  @apply bg-slate-800/80 border-slate-700/50;
 }
 
 .dark .card-modern {
-  @apply bg-card/80 border-border/30;
+  @apply bg-slate-800/80 border-slate-700/50;
 }
 
 .dark .glass-effect {
-  @apply bg-card/20 border-border/10;
+  @apply bg-slate-800/20 border-slate-700/20;
+}
+
+/* Enhanced loading states */
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

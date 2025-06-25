@@ -2,16 +2,20 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Route, MapPin, Clock, Plus, Truck, User, Loader2 } from "lucide-react";
+import { Route, Search, Plus, MapPin, Calendar, User, Truck, Clock, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useTrips, useUpdateTripStatus } from "@/hooks/useSupabaseData";
 import { AddTripForm } from "@/components/forms/AddTripForm";
+import { useToast } from "@/hooks/use-toast";
 
 const TripManagement = () => {
+  const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const { data: trips, isLoading, error } = useTrips();
   const updateTripStatus = useUpdateTripStatus();
+  const { toast } = useToast();
 
   if (isLoading) {
     return (
@@ -35,39 +39,63 @@ const TripManagement = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed": return "bg-green-100 text-green-800";
-      case "in_progress": return "bg-blue-100 text-blue-800";
-      case "planned": return "bg-yellow-100 text-yellow-800";
-      case "cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "completed": return "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-400";
+      case "in_progress": return "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400";
+      case "planned": return "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/20 dark:text-orange-400";
+      default: return "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/20 dark:text-gray-400";
     }
   };
 
-  const handleStatusUpdate = async (tripId: string, newStatus: string) => {
-    await updateTripStatus.mutateAsync({ id: tripId, status: newStatus });
-  };
+  const filteredTrips = trips?.filter(trip =>
+    trip.trip_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trip.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trip.destination.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   const activeTrips = trips?.filter(trip => trip.status === 'in_progress').length || 0;
   const completedToday = trips?.filter(trip => 
     trip.status === 'completed' && 
-    new Date(trip.actual_arrival || trip.planned_arrival).toDateString() === new Date().toDateString()
+    new Date(trip.updated_at).toDateString() === new Date().toDateString()
   ).length || 0;
   const totalDistance = trips?.reduce((sum, trip) => sum + (trip.distance_km || 0), 0) || 0;
+  const onTimeRate = 94; // Mock data
+
+  const handleStatusUpdate = async (tripId: string, newStatus: string) => {
+    try {
+      await updateTripStatus.mutateAsync({ id: tripId, status: newStatus });
+    } catch (error) {
+      console.error('Failed to update trip status:', error);
+    }
+  };
+
+  const handleTrackLive = (tripId: string) => {
+    toast({
+      title: "Live Tracking",
+      description: "Opening live tracking for this trip...",
+    });
+  };
+
+  const handleViewDetails = (tripId: string) => {
+    toast({
+      title: "Trip Details",
+      description: "Opening detailed trip information...",
+    });
+  };
 
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-black flex items-center gap-3">
-              <Route className="w-8 h-8" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
+              <Route className="w-6 h-6 sm:w-8 sm:h-8" />
               Trip & Route Management
             </h1>
-            <p className="text-gray-600">Plan, track, and manage transportation routes</p>
+            <p className="text-muted-foreground">Plan, track, and manage transportation routes</p>
           </div>
           <Button 
-            className="bg-black hover:bg-gray-800 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
             onClick={() => setShowAddForm(true)}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -76,143 +104,182 @@ const TripManagement = () => {
         </div>
 
         {/* Trip Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="stats-card">
-            <CardContent className="p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <Card className="bg-card hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Trips</p>
-                  <p className="text-2xl font-bold text-black">{activeTrips}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Active Trips</p>
+                  <p className="text-xl sm:text-2xl font-bold text-orange-600">{activeTrips}</p>
                 </div>
-                <Route className="w-8 h-8 text-orange-500" />
+                <Route className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="stats-card">
-            <CardContent className="p-6">
+          <Card className="bg-card hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Completed Today</p>
-                  <p className="text-2xl font-bold text-green-600">{completedToday}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Completed Today</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-600">{completedToday}</p>
                 </div>
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full"></div>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="stats-card">
-            <CardContent className="p-6">
+          <Card className="bg-card hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Distance</p>
-                  <p className="text-2xl font-bold text-blue-600">{totalDistance.toLocaleString()}</p>
-                  <p className="text-sm text-gray-500">km total</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Distance</p>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-600">{totalDistance.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">km total</p>
                 </div>
-                <MapPin className="w-8 h-8 text-blue-500" />
+                <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="stats-card">
-            <CardContent className="p-6">
+          <Card className="bg-card hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">On-Time Rate</p>
-                  <p className="text-2xl font-bold text-purple-600">94%</p>
+                  <p className="text-sm font-medium text-muted-foreground">On-Time Rate</p>
+                  <p className="text-xl sm:text-2xl font-bold text-purple-600">{onTimeRate}%</p>
                 </div>
-                <Clock className="w-8 h-8 text-purple-500" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Active Trips */}
-        <Card>
+        {/* Current Trips */}
+        <Card className="border-2 border-yellow-400/50 dark:border-yellow-600/50">
           <CardHeader>
             <CardTitle>Current Trips</CardTitle>
             <CardDescription>Monitor ongoing and scheduled trips</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {trips?.map((trip) => (
-                <div key={trip.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-black text-lg">{trip.trip_number}</h3>
-                      <p className="text-xl font-medium text-gray-900">{trip.origin} → {trip.destination}</p>
-                      <p className="text-sm text-gray-600">Value: ${trip.cargo_value_usd?.toLocaleString() || 'N/A'}</p>
-                    </div>
-                    <Badge className={getStatusColor(trip.status)}>
-                      {trip.status}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm text-gray-600">Truck</p>
-                        <p className="font-medium">{trip.trucks?.truck_number || 'N/A'}</p>
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search by trip number, origin, or destination..."
+                  className="pl-10 border-yellow-300 focus:border-yellow-500 dark:border-yellow-600"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20">Filter</Button>
+                <Button variant="outline" className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20">Export</Button>
+              </div>
+            </div>
+
+            {/* Trips List */}
+            <div className="space-y-4">
+              {filteredTrips.map((trip) => (
+                <Card key={trip.id} className="hover:shadow-md transition-shadow border-2 border-yellow-300/50 dark:border-yellow-600/50">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-bold text-foreground">{trip.trip_number}</h3>
+                          <Badge className={getStatusColor(trip.status) + " border"}>
+                            {trip.status.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium text-foreground">{trip.origin} → {trip.destination}</span>
+                          </div>
+                          <div className="text-muted-foreground">
+                            Value: KSh {(trip.cargo_value_usd * 130)?.toLocaleString() || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Truck className="w-4 h-4" />
+                            <span>Truck</span>
+                          </div>
+                          <p className="font-medium text-foreground">{trip.trucks?.truck_number || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <User className="w-4 h-4" />
+                            <span>Driver</span>
+                          </div>
+                          <p className="font-medium text-foreground">{trip.drivers?.full_name || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <MapPin className="w-4 h-4" />
+                            <span>Distance</span>
+                          </div>
+                          <p className="font-medium text-foreground">{trip.distance_km || 0} km</p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            <span>Planned Arrival</span>
+                          </div>
+                          <p className="font-medium text-foreground">
+                            {trip.planned_arrival_date ? new Date(trip.planned_arrival_date).toLocaleDateString() : 'N/A'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm text-gray-600">Driver</p>
-                        <p className="font-medium">{trip.drivers?.full_name || 'N/A'}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm text-gray-600">Distance</p>
-                        <p className="font-medium">{trip.distance_km?.toLocaleString() || 'N/A'} km</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm text-gray-600">Planned Arrival</p>
-                        <p className="font-medium">{new Date(trip.planned_arrival).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button size="sm" variant="outline">
-                      View Details
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      Track Live
-                    </Button>
-                    {trip.status === "planned" && (
+                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
                       <Button 
                         size="sm" 
-                        className="bg-black hover:bg-gray-800 text-white"
-                        onClick={() => handleStatusUpdate(trip.id, 'in_progress')}
+                        variant="outline" 
+                        className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                        onClick={() => handleViewDetails(trip.id)}
                       >
-                        Start Trip
+                        View Details
                       </Button>
-                    )}
-                    {trip.status === "in_progress" && (
                       <Button 
                         size="sm" 
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleStatusUpdate(trip.id, 'completed')}
+                        variant="outline" 
+                        className="border-blue-400 text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        onClick={() => handleTrackLive(trip.id)}
                       >
-                        Complete Trip
+                        Track Live
                       </Button>
-                    )}
-                  </div>
-                </div>
-              )) || (
-                <div className="text-center py-8 text-gray-500">
+                      {trip.status === 'in_progress' && (
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => handleStatusUpdate(trip.id, 'completed')}
+                        >
+                          Complete Trip
+                        </Button>
+                      )}
+                      {trip.status === 'planned' && (
+                        <Button 
+                          size="sm" 
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={() => handleStatusUpdate(trip.id, 'in_progress')}
+                        >
+                          Start Trip
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {(!trips || trips.length === 0) && (
+                <div className="text-center py-8 text-muted-foreground">
                   No trips found. Create your first trip to get started.
                 </div>
               )}
