@@ -6,43 +6,45 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Truck } from "lucide-react";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { isAuthenticated, login } = useAuth();
+  const { user, signIn } = useAuth();
   const { toast } = useToast();
 
-  if (isAuthenticated) {
+  if (user) {
     return <Navigate to="/" />;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(username, password)) {
+    const { error } = await signIn(email, password);
+    
+    if (error) {
       toast({
-        title: "Welcome back!",
-        description: "Successfully logged into Inland Africa Logistics System",
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
       });
     } else {
       toast({
-        title: "Login Failed",
-        description: "Invalid credentials. Use admin/password for demo.",
-        variant: "destructive",
+        title: "Welcome back!",
+        description: "Successfully logged into Inland Africa Logistics System",
       });
     }
   };
 
   return (
-    <div className="min-h-screen logistics-gradient flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md animate-fade-in">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-logistics-accent rounded-full flex items-center justify-center">
-            <Truck className="w-8 h-8 text-logistics-primary" />
+          <div className="mx-auto w-16 h-16 bg-orange-400 rounded-full flex items-center justify-center">
+            <Truck className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold text-logistics-primary">
+          <CardTitle className="text-2xl font-bold text-gray-900">
             Inland Africa Logistics
           </CardTitle>
           <CardDescription>
@@ -52,13 +54,13 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
                 required
               />
             </div>
@@ -75,15 +77,14 @@ const Login = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-logistics-primary hover:bg-logistics-secondary"
+              className="w-full bg-orange-500 hover:bg-orange-600"
             >
               Sign In
             </Button>
           </form>
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 font-semibold">Demo Credentials:</p>
-            <p className="text-sm text-gray-600">Username: admin</p>
-            <p className="text-sm text-gray-600">Password: password</p>
+            <p className="text-sm text-gray-600 font-semibold">Demo Account:</p>
+            <p className="text-sm text-gray-600">Create a new account using the Auth page</p>
           </div>
         </CardContent>
       </Card>

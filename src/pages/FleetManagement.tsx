@@ -6,11 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Search, Plus, Settings, Calendar, Gauge, User, Route, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useTrucks } from "@/hooks/useSupabaseData";
+import { useTrucks, useUpdateTruckStatus } from "@/hooks/useSupabaseData";
+import { AddTruckForm } from "@/components/forms/AddTruckForm";
 
 const FleetManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
   const { data: trucks, isLoading, error } = useTrucks();
+  const updateTruckStatus = useUpdateTruckStatus();
 
   if (isLoading) {
     return (
@@ -47,10 +50,13 @@ const FleetManagement = () => {
     truck.make.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  // Calculate statistics
   const activeTrucks = trucks?.filter(truck => truck.status === 'active').length || 0;
   const totalMileage = trucks?.reduce((sum, truck) => sum + (truck.mileage || 0), 0) || 0;
-  const estimatedFuelCost = Math.round(totalMileage * 0.15); // Estimated at KSh 0.15 per km
+  const estimatedFuelCost = Math.round(totalMileage * 0.15);
+
+  const handleStatusUpdate = async (truckId: string, newStatus: string) => {
+    await updateTruckStatus.mutateAsync({ id: truckId, status: newStatus });
+  };
 
   return (
     <Layout>
@@ -64,7 +70,10 @@ const FleetManagement = () => {
             </h1>
             <p className="text-gray-600">Manage and monitor your truck fleet</p>
           </div>
-          <Button className="bg-black hover:bg-gray-800 text-white">
+          <Button 
+            className="bg-black hover:bg-gray-800 text-white"
+            onClick={() => setShowAddForm(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add New Truck
           </Button>
@@ -192,8 +201,12 @@ const FleetManagement = () => {
                       <Button size="sm" variant="outline" className="flex-1 border-yellow-400 text-black hover:bg-yellow-50">
                         View Details
                       </Button>
-                      <Button size="sm" className="flex-1 bg-black hover:bg-gray-800 text-white">
-                        Track
+                      <Button 
+                        size="sm" 
+                        className="flex-1 bg-black hover:bg-gray-800 text-white"
+                        onClick={() => handleStatusUpdate(truck.id, truck.status === 'active' ? 'maintenance' : 'active')}
+                      >
+                        {truck.status === 'active' ? 'Set Maintenance' : 'Set Active'}
                       </Button>
                     </div>
                   </CardContent>
@@ -202,6 +215,10 @@ const FleetManagement = () => {
             </div>
           </CardContent>
         </Card>
+
+        {showAddForm && (
+          <AddTruckForm onClose={() => setShowAddForm(false)} />
+        )}
       </div>
     </Layout>
   );
