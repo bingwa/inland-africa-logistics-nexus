@@ -232,7 +232,7 @@ const TripManagement = () => {
                             <span>Planned Arrival</span>
                           </div>
                           <p className="font-medium text-foreground">
-                            {trip.planned_arrival_date ? new Date(trip.planned_arrival_date).toLocaleDateString() : 'N/A'}
+                            {trip.planned_arrival ? new Date(trip.planned_arrival).toLocaleDateString() : 'N/A'}
                           </p>
                         </div>
                       </div>

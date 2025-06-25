@@ -21,9 +21,8 @@ export const AddInventoryForm = ({ onClose }: AddInventoryFormProps) => {
     description: '',
     quantity_in_stock: 0,
     minimum_stock_level: 0,
-    unit_price_usd: 0,
-    supplier_name: '',
-    supplier_contact: '',
+    unit_price: 0,
+    supplier: '',
     location: ''
   });
 
@@ -147,14 +146,14 @@ export const AddInventoryForm = ({ onClose }: AddInventoryFormProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="unit_price_usd">Unit Price (USD) *</Label>
+            <Label htmlFor="unit_price">Unit Price (USD) *</Label>
             <Input
-              id="unit_price_usd"
+              id="unit_price"
               type="number"
               min="0"
               step="0.01"
-              value={formData.unit_price_usd}
-              onChange={(e) => handleInputChange('unit_price_usd', parseFloat(e.target.value) || 0)}
+              value={formData.unit_price}
+              onChange={(e) => handleInputChange('unit_price', parseFloat(e.target.value) || 0)}
               placeholder="0.00"
               required
               className="bg-background"
@@ -163,37 +162,26 @@ export const AddInventoryForm = ({ onClose }: AddInventoryFormProps) => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="supplier_name">Supplier Name</Label>
+              <Label htmlFor="supplier">Supplier Name</Label>
               <Input
-                id="supplier_name"
-                value={formData.supplier_name}
-                onChange={(e) => handleInputChange('supplier_name', e.target.value)}
+                id="supplier"
+                value={formData.supplier}
+                onChange={(e) => handleInputChange('supplier', e.target.value)}
                 placeholder="Supplier name"
                 className="bg-background"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="supplier_contact">Supplier Contact</Label>
+              <Label htmlFor="location">Storage Location</Label>
               <Input
-                id="supplier_contact"
-                value={formData.supplier_contact}
-                onChange={(e) => handleInputChange('supplier_contact', e.target.value)}
-                placeholder="Phone/Email"
+                id="location"
+                value={formData.location}
+                onChange={(e) => handleInputChange('location', e.target.value)}
+                placeholder="e.g., Warehouse A, Shelf 3"
                 className="bg-background"
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="location">Storage Location</Label>
-            <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
-              placeholder="e.g., Warehouse A, Shelf 3"
-              className="bg-background"
-            />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">

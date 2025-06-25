@@ -52,7 +52,7 @@ const InventoryManagement = () => {
   const totalItems = spareParts?.reduce((sum, part) => sum + part.quantity_in_stock, 0) || 0;
   const lowStockItems = spareParts?.filter(part => part.quantity_in_stock <= part.minimum_stock_level && part.quantity_in_stock > 0).length || 0;
   const outOfStockItems = spareParts?.filter(part => part.quantity_in_stock === 0).length || 0;
-  const totalValue = spareParts?.reduce((sum, part) => sum + (part.quantity_in_stock * part.unit_price_usd * 130), 0) || 0;
+  const totalValue = spareParts?.reduce((sum, part) => sum + (part.quantity_in_stock * part.unit_price * 130), 0) || 0;
 
   const categories = ['all', 'engine', 'brakes', 'transmission', 'electrical', 'suspension', 'tires', 'filters', 'oils', 'body', 'other'];
 
@@ -195,15 +195,15 @@ const InventoryManagement = () => {
                           </div>
                           <div>
                             <p className="text-muted-foreground">Unit Price</p>
-                            <p className="font-medium text-foreground">KSh {Math.round(part.unit_price_usd * 130).toLocaleString()}</p>
+                            <p className="font-medium text-foreground">KSh {Math.round(part.unit_price * 130).toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground">Total Value</p>
-                            <p className="font-medium text-foreground">KSh {Math.round(part.quantity_in_stock * part.unit_price_usd * 130).toLocaleString()}</p>
+                            <p className="font-medium text-foreground">KSh {Math.round(part.quantity_in_stock * part.unit_price * 130).toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground">Supplier</p>
-                            <p className="font-medium text-foreground">{part.supplier_name || 'N/A'}</p>
+                            <p className="font-medium text-foreground">{part.supplier || 'N/A'}</p>
                           </div>
                         </div>
                       </div>
