@@ -13,7 +13,9 @@ import FleetManagement from "./pages/FleetManagement";
 import ServiceManagement from "./pages/ServiceManagement";
 import TripManagement from "./pages/TripManagement";
 import InventoryManagement from "./pages/InventoryManagement";
+import CargoManagement from "./pages/CargoManagement";
 import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 
@@ -59,9 +61,19 @@ const App = () => (
                   <InventoryManagement />
                 </ProtectedRoute>
               } />
+              <Route path="/cargo" element={
+                <ProtectedRoute>
+                  <CargoManagement />
+                </ProtectedRoute>
+              } />
               <Route path="/reports" element={
                 <ProtectedRoute>
                   <Reports />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={

@@ -1,4 +1,3 @@
-
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,11 +52,14 @@ const Profile = () => {
       push: true
     }
   });
+  
+  const [originalData, setOriginalData] = useState(profileData);
 
   const { toast } = useToast();
 
   const handleSave = () => {
     setIsEditing(false);
+    setOriginalData(profileData);
     toast({
       title: "Profile Updated",
       description: "Your profile information has been successfully updated.",
@@ -66,7 +68,25 @@ const Profile = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset form data
+    setProfileData(originalData);
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      setProfileData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent as keyof typeof prev],
+          [child]: value
+        }
+      }));
+    } else {
+      setProfileData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
 
   const getRoleColor = (role: string) => {
@@ -196,7 +216,7 @@ const Profile = () => {
                         <Input
                           id="fullName"
                           value={profileData.fullName}
-                          onChange={(e) => setProfileData({...profileData, fullName: e.target.value})}
+                          onChange={(e) => handleInputChange('fullName', e.target.value)}
                           disabled={!isEditing}
                         />
                       </div>
@@ -215,7 +235,7 @@ const Profile = () => {
                           id="email"
                           type="email"
                           value={profileData.email}
-                          onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
                           disabled={!isEditing}
                         />
                       </div>
@@ -224,13 +244,17 @@ const Profile = () => {
                         <Input
                           id="phone"
                           value={profileData.phone}
-                          onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
                           disabled={!isEditing}
                         />
                       </div>
                       <div>
                         <Label htmlFor="role">Role</Label>
-                        <Select value={profileData.role} onValueChange={(value) => setProfileData({...profileData, role: value})} disabled={!isEditing}>
+                        <Select 
+                          value={profileData.role} 
+                          onValueChange={(value) => handleInputChange('role', value)} 
+                          disabled={!isEditing}
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -247,7 +271,7 @@ const Profile = () => {
                         <Input
                           id="department"
                           value={profileData.department}
-                          onChange={(e) => setProfileData({...profileData, department: e.target.value})}
+                          onChange={(e) => handleInputChange('department', e.target.value)}
                           disabled={!isEditing}
                         />
                       </div>
@@ -267,7 +291,7 @@ const Profile = () => {
                         <Textarea
                           id="address"
                           value={profileData.address}
-                          onChange={(e) => setProfileData({...profileData, address: e.target.value})}
+                          onChange={(e) => handleInputChange('address', e.target.value)}
                           disabled={!isEditing}
                           rows={3}
                         />
@@ -278,7 +302,7 @@ const Profile = () => {
                           <Input
                             id="emergencyContact"
                             value={profileData.emergencyContact}
-                            onChange={(e) => setProfileData({...profileData, emergencyContact: e.target.value})}
+                            onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
                             disabled={!isEditing}
                           />
                         </div>
@@ -287,7 +311,7 @@ const Profile = () => {
                           <Input
                             id="licenseNumber"
                             value={profileData.licenseNumber}
-                            onChange={(e) => setProfileData({...profileData, licenseNumber: e.target.value})}
+                            onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
                             disabled={!isEditing}
                           />
                         </div>
@@ -304,7 +328,7 @@ const Profile = () => {
                   <CardContent>
                     <Textarea
                       value={profileData.bio}
-                      onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                      onChange={(e) => handleInputChange('bio', e.target.value)}
                       disabled={!isEditing}
                       rows={4}
                       placeholder="Share your professional background, experience, and expertise..."
@@ -331,7 +355,12 @@ const Profile = () => {
                           <p className="text-sm text-muted-foreground">Receive updates via email</p>
                         </div>
                       </div>
-                      <input type="checkbox" checked={profileData.notifications.email} readOnly />
+                      <input 
+                        type="checkbox" 
+                        checked={profileData.notifications.email} 
+                        onChange={(e) => handleInputChange('notifications.email', e.target.checked)}
+                        disabled={!isEditing}
+                      />
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between">
@@ -342,7 +371,12 @@ const Profile = () => {
                           <p className="text-sm text-muted-foreground">Receive updates via SMS</p>
                         </div>
                       </div>
-                      <input type="checkbox" checked={profileData.notifications.sms} readOnly />
+                      <input 
+                        type="checkbox" 
+                        checked={profileData.notifications.sms} 
+                        onChange={(e) => handleInputChange('notifications.sms', e.target.checked)}
+                        disabled={!isEditing}
+                      />
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between">
@@ -353,7 +387,12 @@ const Profile = () => {
                           <p className="text-sm text-muted-foreground">Receive browser notifications</p>
                         </div>
                       </div>
-                      <input type="checkbox" checked={profileData.notifications.push} readOnly />
+                      <input 
+                        type="checkbox" 
+                        checked={profileData.notifications.push} 
+                        onChange={(e) => handleInputChange('notifications.push', e.target.checked)}
+                        disabled={!isEditing}
+                      />
                     </div>
                   </div>
                 </CardContent>

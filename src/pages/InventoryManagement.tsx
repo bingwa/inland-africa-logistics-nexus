@@ -2,17 +2,22 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Package, Search, Plus, AlertTriangle, TrendingUp, DollarSign, Loader2 } from "lucide-react";
+import { FilterExportBar } from "@/components/FilterExportBar";
+import { Package, Plus, AlertTriangle, TrendingUp, DollarSign, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useSpareParts } from "@/hooks/useSupabaseData";
 import { AddInventoryForm } from "@/components/forms/AddInventoryForm";
+import { EditInventoryModal } from "@/components/modals/EditInventoryModal";
+import { UpdateStockModal } from "@/components/modals/UpdateStockModal";
+import { ReorderModal } from "@/components/modals/ReorderModal";
 
 const InventoryManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [editingItem, setEditingItem] = useState(null);
+  const [updatingStockItem, setUpdatingStockItem] = useState(null);
+  const [reorderingItem, setReorderingItem] = useState(null);
   const { data: spareParts, isLoading, error } = useSpareParts();
 
   if (isLoading) {
@@ -45,8 +50,7 @@ const InventoryManagement = () => {
     const matchesSearch = part.part_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          part.part_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          part.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || part.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    return matchesSearch;
   }) || [];
 
   const totalItems = spareParts?.reduce((sum, part) => sum + part.quantity_in_stock, 0) || 0;
@@ -54,7 +58,23 @@ const InventoryManagement = () => {
   const outOfStockItems = spareParts?.filter(part => part.quantity_in_stock === 0).length || 0;
   const totalValue = spareParts?.reduce((sum, part) => sum + (part.quantity_in_stock * part.unit_price * 130), 0) || 0;
 
-  const categories = ['all', 'engine', 'brakes', 'transmission', 'electrical', 'suspension', 'tires', 'filters', 'oils', 'body', 'other'];
+  const handleFilterApply = (filters: any) => {
+    console.log('Applying filters:', filters);
+  };
+
+  const handleExport = (format: string) => {
+    console.log(`Exporting inventory in ${format} format`);
+  };
+
+  const handleEditItem = (updatedItem: any) => {
+    console.log('Updating item:', updatedItem);
+    // Here you would call the update mutation
+  };
+
+  const handleUpdateStock = (itemId: string, newQuantity: number, operation: 'add' | 'remove' | 'set') => {
+    console.log(`Updating stock for ${itemId}: ${operation} ${newQuantity}`);
+    // Here you would call the stock update mutation
+  };
 
   return (
     <Layout>
@@ -135,34 +155,19 @@ const InventoryManagement = () => {
             <CardDescription>Monitor and manage spare parts inventory</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search by name, SKU, or category..."
-                  className="pl-10 border-yellow-300 focus:border-yellow-500 dark:border-yellow-600"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                <select 
-                  className="px-3 py-2 border border-yellow-400 rounded-md bg-background text-foreground"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  {categories.map(category => (
-                    <option key={category} value={category}>
-                      {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
-                    </option>
-                  ))}
-                </select>
-                <Button variant="outline" className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20">Export</Button>
-              </div>
-            </div>
+            <FilterExportBar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              onFilterApply={handleFilterApply}
+              onExport={handleExport}
+              filterOptions={{
+                status: ['in_stock', 'low_stock', 'out_of_stock'],
+                types: ['engine', 'brakes', 'transmission', 'electrical', 'suspension', 'tires', 'filters', 'oils', 'body', 'other']
+              }}
+            />
 
             {/* Inventory Items */}
-            <div className="space-y-4">
+            <div className="space-y-4 mt-6">
               {filteredParts.map((part) => {
                 const stockStatus = getStockStatus(part.quantity_in_stock, part.minimum_stock_level);
                 
@@ -215,13 +220,28 @@ const InventoryManagement = () => {
                       )}
                       
                       <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border">
-                        <Button size="sm" variant="outline" className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                          onClick={() => setEditingItem(part)}
+                        >
                           Edit
                         </Button>
-                        <Button size="sm" variant="outline" className="border-blue-400 text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-blue-400 text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          onClick={() => setUpdatingStockItem(part)}
+                        >
                           Update Stock
                         </Button>
-                        <Button size="sm" variant="outline" className="border-green-400 text-foreground hover:bg-green-50 dark:hover:bg-green-900/20">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-green-400 text-foreground hover:bg-green-50 dark:hover:bg-green-900/20"
+                          onClick={() => setReorderingItem(part)}
+                        >
                           Reorder
                         </Button>
                       </div>
@@ -239,8 +259,35 @@ const InventoryManagement = () => {
           </CardContent>
         </Card>
 
+        {/* Modals */}
         {showAddForm && (
           <AddInventoryForm onClose={() => setShowAddForm(false)} />
+        )}
+
+        {editingItem && (
+          <EditInventoryModal
+            isOpen={!!editingItem}
+            onClose={() => setEditingItem(null)}
+            item={editingItem}
+            onSave={handleEditItem}
+          />
+        )}
+
+        {updatingStockItem && (
+          <UpdateStockModal
+            isOpen={!!updatingStockItem}
+            onClose={() => setUpdatingStockItem(null)}
+            item={updatingStockItem}
+            onUpdate={handleUpdateStock}
+          />
+        )}
+
+        {reorderingItem && (
+          <ReorderModal
+            isOpen={!!reorderingItem}
+            onClose={() => setReorderingItem(null)}
+            item={reorderingItem}
+          />
         )}
       </div>
     </Layout>
