@@ -1,3 +1,4 @@
+
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { 
   User, 
   Mail, 
@@ -19,16 +21,14 @@ import {
   Save, 
   X,
   Camera,
-  Settings,
   Bell,
   Lock,
   Activity,
   Award,
   Briefcase
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { AdminAccessControl } from "@/components/AdminAccessControl";
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -57,12 +57,24 @@ const Profile = () => {
 
   const { toast } = useToast();
 
+  // Load saved profile data on component mount
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('userProfile');
+    if (savedProfile) {
+      const parsedProfile = JSON.parse(savedProfile);
+      setProfileData(parsedProfile);
+      setOriginalData(parsedProfile);
+    }
+  }, []);
+
   const handleSave = () => {
+    // Save to localStorage
+    localStorage.setItem('userProfile', JSON.stringify(profileData));
     setIsEditing(false);
     setOriginalData(profileData);
     toast({
       title: "Profile Updated",
-      description: "Your profile information has been successfully updated.",
+      description: "Your profile information has been successfully saved.",
     });
   };
 
@@ -107,36 +119,36 @@ const Profile = () => {
 
   const tabs = [
     { id: 'profile', label: 'Profile Information', icon: User },
-    { id: 'settings', label: 'Account Settings', icon: Settings },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'activity', label: 'Activity Log', icon: Activity }
   ];
 
   return (
     <Layout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-4 sm:space-y-6 animate-fade-in p-2 sm:p-4 lg:p-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
-              <User className="w-6 h-6 sm:w-8 sm:h-8" />
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
+              <User className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8" />
               User Profile
             </h1>
-            <p className="text-muted-foreground">Manage your account information and preferences</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Manage your account information and preferences</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             {!isEditing ? (
-              <Button onClick={() => setIsEditing(true)} className="bg-primary hover:bg-primary/90">
+              <Button onClick={() => setIsEditing(true)} className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none">
                 <Edit3 className="w-4 h-4 mr-2" />
                 Edit Profile
               </Button>
             ) : (
               <>
-                <Button variant="outline" onClick={handleCancel}>
+                <Button variant="outline" onClick={handleCancel} className="flex-1 sm:flex-none">
                   <X className="w-4 h-4 mr-2" />
                   Cancel
                 </Button>
-                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
+                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none">
                   <Save className="w-4 h-4 mr-2" />
                   Save Changes
                 </Button>
@@ -145,44 +157,44 @@ const Profile = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
           {/* Profile Summary Card */}
           <div className="lg:col-span-1">
-            <Card className="sticky top-6">
-              <CardContent className="p-6 text-center">
+            <Card className="lg:sticky lg:top-6">
+              <CardContent className="p-4 sm:p-6 text-center">
                 <div className="relative inline-block mb-4">
-                  <Avatar className="w-24 h-24 mx-auto">
+                  <Avatar className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mx-auto">
                     <AvatarImage src="" alt={profileData.fullName} />
-                    <AvatarFallback className="text-xl font-bold bg-primary text-primary-foreground">
+                    <AvatarFallback className="text-lg sm:text-xl font-bold bg-primary text-primary-foreground">
                       {profileData.fullName.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
-                    <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0">
-                      <Camera className="w-4 h-4" />
+                    <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full w-6 h-6 sm:w-8 sm:h-8 p-0">
+                      <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                   )}
                 </div>
                 
-                <h3 className="text-lg font-bold text-foreground">{profileData.fullName}</h3>
-                <p className="text-sm text-muted-foreground mb-2">{profileData.email}</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">{profileData.fullName}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2 break-all">{profileData.email}</p>
                 
-                <Badge className={getRoleColor(profileData.role) + " mb-4"}>
+                <Badge className={getRoleColor(profileData.role) + " mb-4 text-xs"}>
                   <Shield className="w-3 h-3 mr-1" />
                   {profileData.role}
                 </Badge>
                 
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-xs sm:text-sm">
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <Briefcase className="w-4 h-4" />
+                    <Briefcase className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{profileData.department}</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Joined {new Date(profileData.joinDate).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <MapPin className="w-4 h-4" />
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{profileData.location}</span>
                   </div>
                 </div>
@@ -193,75 +205,80 @@ const Profile = () => {
           {/* Main Content */}
           <div className="lg:col-span-3">
             {/* Tab Navigation */}
-            <div className="flex flex-wrap gap-1 mb-6 p-1 bg-muted rounded-lg">
+            <div className="flex flex-wrap gap-1 mb-4 sm:mb-6 p-1 bg-muted rounded-lg overflow-x-auto">
               {tabs.map(tab => (
                 <Button
                   key={tab.id}
                   variant={activeTab === tab.id ? "default" : "ghost"}
                   onClick={() => setActiveTab(tab.id)}
-                  className="flex items-center gap-2 text-sm"
+                  className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap"
+                  size="sm"
                 >
-                  <tab.icon className="w-4 h-4" />
+                  <tab.icon className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                 </Button>
               ))}
             </div>
 
             {/* Profile Information Tab */}
             {activeTab === 'profile' && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Personal Information</CardTitle>
-                    <CardDescription>Your basic profile and contact information</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">Personal Information</CardTitle>
+                    <CardDescription className="text-sm">Your basic profile and contact information</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="fullName">Full Name</Label>
+                        <Label htmlFor="fullName" className="text-sm">Full Name</Label>
                         <Input
                           id="fullName"
                           value={profileData.fullName}
                           onChange={(e) => handleInputChange('fullName', e.target.value)}
                           disabled={!isEditing}
+                          className="text-sm"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="employeeId">Employee ID</Label>
+                        <Label htmlFor="employeeId" className="text-sm">Employee ID</Label>
                         <Input
                           id="employeeId"
                           value={profileData.employeeId}
                           disabled
-                          className="bg-muted"
+                          className="bg-muted text-sm"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="email">Email Address</Label>
+                        <Label htmlFor="email" className="text-sm">Email Address</Label>
                         <Input
                           id="email"
                           type="email"
                           value={profileData.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
                           disabled={!isEditing}
+                          className="text-sm"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="phone">Phone Number</Label>
+                        <Label htmlFor="phone" className="text-sm">Phone Number</Label>
                         <Input
                           id="phone"
                           value={profileData.phone}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
                           disabled={!isEditing}
+                          className="text-sm"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="role">Role</Label>
+                        <Label htmlFor="role" className="text-sm">Role</Label>
                         <Select 
                           value={profileData.role} 
                           onValueChange={(value) => handleInputChange('role', value)} 
                           disabled={!isEditing}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -273,12 +290,13 @@ const Profile = () => {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="department">Department</Label>
+                        <Label htmlFor="department" className="text-sm">Department</Label>
                         <Input
                           id="department"
                           value={profileData.department}
                           onChange={(e) => handleInputChange('department', e.target.value)}
                           disabled={!isEditing}
+                          className="text-sm"
                         />
                       </div>
                     </div>
@@ -287,38 +305,41 @@ const Profile = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Address & Emergency Contact</CardTitle>
-                    <CardDescription>Additional contact information</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">Address & Emergency Contact</CardTitle>
+                    <CardDescription className="text-sm">Additional contact information</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="address">Address</Label>
+                        <Label htmlFor="address" className="text-sm">Address</Label>
                         <Textarea
                           id="address"
                           value={profileData.address}
                           onChange={(e) => handleInputChange('address', e.target.value)}
                           disabled={!isEditing}
                           rows={3}
+                          className="text-sm resize-none"
                         />
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="emergencyContact">Emergency Contact</Label>
+                          <Label htmlFor="emergencyContact" className="text-sm">Emergency Contact</Label>
                           <Input
                             id="emergencyContact"
                             value={profileData.emergencyContact}
                             onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
                             disabled={!isEditing}
+                            className="text-sm"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="licenseNumber">License Number</Label>
+                          <Label htmlFor="licenseNumber" className="text-sm">License Number</Label>
                           <Input
                             id="licenseNumber"
                             value={profileData.licenseNumber}
                             onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
                             disabled={!isEditing}
+                            className="text-sm"
                           />
                         </div>
                       </div>
@@ -328,8 +349,8 @@ const Profile = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Professional Bio</CardTitle>
-                    <CardDescription>Tell us about your experience and expertise</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">Professional Bio</CardTitle>
+                    <CardDescription className="text-sm">Tell us about your experience and expertise</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Textarea
@@ -338,18 +359,19 @@ const Profile = () => {
                       disabled={!isEditing}
                       rows={4}
                       placeholder="Share your professional background, experience, and expertise..."
+                      className="text-sm resize-none"
                     />
                   </CardContent>
                 </Card>
               </div>
             )}
 
-            {/* Account Settings Tab */}
-            {activeTab === 'settings' && (
+            {/* Notifications Tab */}
+            {activeTab === 'notifications' && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                  <CardDescription>Choose how you want to receive notifications</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Notification Preferences</CardTitle>
+                  <CardDescription className="text-sm">Choose how you want to receive notifications</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -357,14 +379,13 @@ const Profile = () => {
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4" />
                         <div>
-                          <p className="font-medium">Email Notifications</p>
-                          <p className="text-sm text-muted-foreground">Receive updates via email</p>
+                          <p className="font-medium text-sm">Email Notifications</p>
+                          <p className="text-xs text-muted-foreground">Receive updates via email</p>
                         </div>
                       </div>
-                      <input 
-                        type="checkbox" 
+                      <Switch 
                         checked={profileData.notifications.email} 
-                        onChange={(e) => handleInputChange('notifications.email', e.target.checked)}
+                        onCheckedChange={(checked) => handleInputChange('notifications.email', checked)}
                         disabled={!isEditing}
                       />
                     </div>
@@ -373,14 +394,13 @@ const Profile = () => {
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4" />
                         <div>
-                          <p className="font-medium">SMS Notifications</p>
-                          <p className="text-sm text-muted-foreground">Receive updates via SMS</p>
+                          <p className="font-medium text-sm">SMS Notifications</p>
+                          <p className="text-xs text-muted-foreground">Receive updates via SMS</p>
                         </div>
                       </div>
-                      <input 
-                        type="checkbox" 
+                      <Switch 
                         checked={profileData.notifications.sms} 
-                        onChange={(e) => handleInputChange('notifications.sms', e.target.checked)}
+                        onCheckedChange={(checked) => handleInputChange('notifications.sms', checked)}
                         disabled={!isEditing}
                       />
                     </div>
@@ -389,14 +409,13 @@ const Profile = () => {
                       <div className="flex items-center gap-2">
                         <Bell className="w-4 h-4" />
                         <div>
-                          <p className="font-medium">Push Notifications</p>
-                          <p className="text-sm text-muted-foreground">Receive browser notifications</p>
+                          <p className="font-medium text-sm">Push Notifications</p>
+                          <p className="text-xs text-muted-foreground">Receive browser notifications</p>
                         </div>
                       </div>
-                      <input 
-                        type="checkbox" 
+                      <Switch 
                         checked={profileData.notifications.push} 
-                        onChange={(e) => handleInputChange('notifications.push', e.target.checked)}
+                        onCheckedChange={(checked) => handleInputChange('notifications.push', checked)}
                         disabled={!isEditing}
                       />
                     </div>
@@ -407,42 +426,30 @@ const Profile = () => {
 
             {/* Security Tab */}
             {activeTab === 'security' && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Password & Security</CardTitle>
-                    <CardDescription>Manage your account security settings</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">Password & Security</CardTitle>
+                    <CardDescription className="text-sm">Manage your account security settings</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button className="w-full sm:w-auto">
+                    <Button className="w-full sm:w-auto text-sm">
                       <Lock className="w-4 h-4 mr-2" />
                       Change Password
                     </Button>
                     <Separator />
                     <div>
-                      <p className="font-medium mb-2">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground mb-3">
+                      <p className="font-medium mb-2 text-sm">Two-Factor Authentication</p>
+                      <p className="text-xs text-muted-foreground mb-3">
                         Add an extra layer of security to your account
                       </p>
-                      <Button variant="outline">
+                      <Button variant="outline" className="text-sm">
                         <Shield className="w-4 h-4 mr-2" />
                         Enable 2FA
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-
-                <AdminAccessControl userRole="user" requiredRole="admin">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Admin Security Settings</CardTitle>
-                      <CardDescription>Advanced security configurations</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p>Advanced admin security settings would appear here.</p>
-                    </CardContent>
-                  </Card>
-                </AdminAccessControl>
               </div>
             )}
 
@@ -450,8 +457,8 @@ const Profile = () => {
             {activeTab === 'activity' && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>Your recent system activities and login history</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
+                  <CardDescription className="text-sm">Your recent system activities and login history</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -462,10 +469,10 @@ const Profile = () => {
                       { action: 'Trip created', time: '3 days ago', icon: Activity }
                     ].map((activity, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                        <activity.icon className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{activity.action}</p>
-                          <p className="text-sm text-muted-foreground">{activity.time}</p>
+                        <activity.icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm">{activity.action}</p>
+                          <p className="text-xs text-muted-foreground">{activity.time}</p>
                         </div>
                       </div>
                     ))}

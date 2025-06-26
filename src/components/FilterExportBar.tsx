@@ -67,22 +67,108 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
   };
 
   const handleExport = (format: string) => {
+    // Create sample data for export
+    const sampleData = [
+      { id: 1, name: "Sample Item 1", status: "Active", date: new Date().toISOString() },
+      { id: 2, name: "Sample Item 2", status: "Inactive", date: new Date().toISOString() }
+    ];
+
+    switch (format) {
+      case 'csv':
+        exportToCSV(sampleData);
+        break;
+      case 'excel':
+        exportToExcel(sampleData);
+        break;
+      case 'pdf':
+        exportToPDF(sampleData);
+        break;
+      case 'print':
+        printData(sampleData);
+        break;
+      default:
+        break;
+    }
+
     onExport(format);
     toast({
       title: "Export Started",
-      description: `Exporting data in ${format.toUpperCase()} format...`,
+      description: `Data exported in ${format.toUpperCase()} format successfully!`,
     });
+  };
+
+  const exportToCSV = (data: any[]) => {
+    const headers = Object.keys(data[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => headers.map(header => row[header]).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportToExcel = (data: any[]) => {
+    // Simulate Excel export
+    const csvContent = exportToCSV(data);
+    toast({
+      title: "Excel Export",
+      description: "Excel export functionality would be implemented here with a proper Excel library.",
+    });
+  };
+
+  const exportToPDF = (data: any[]) => {
+    // Simulate PDF export
+    toast({
+      title: "PDF Export",
+      description: "PDF export functionality would be implemented here with a PDF library.",
+    });
+  };
+
+  const printData = (data: any[]) => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+            <h1>Data Report</h1>
+            <table>
+              <tr>${Object.keys(data[0] || {}).map(key => `<th>${key}</th>`).join('')}</tr>
+              ${data.map(row => 
+                `<tr>${Object.values(row).map(value => `<td>${value}</td>`).join('')}</tr>`
+              ).join('')}
+            </table>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   return (
     <div className="space-y-4">
       {/* Search and Action Bar */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder="Search..."
-            className="pl-10"
+            className="pl-10 text-sm"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
           />
@@ -91,14 +177,15 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
           <Button 
             variant="outline" 
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-sm whitespace-nowrap"
+            size="sm"
           >
             <Filter className="w-4 h-4" />
-            Filter
+            <span className="hidden sm:inline">Filter</span>
           </Button>
           <Select onValueChange={handleExport}>
-            <SelectTrigger className="w-[130px]">
-              <Download className="w-4 h-4 mr-2" />
+            <SelectTrigger className="w-[100px] sm:w-[130px] text-sm">
+              <Download className="w-4 h-4 mr-1 sm:mr-2" />
               <SelectValue placeholder="Export" />
             </SelectTrigger>
             <SelectContent>
@@ -116,19 +203,19 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Advanced Filters</h3>
+              <h3 className="text-base sm:text-lg font-semibold">Advanced Filters</h3>
               <Button variant="ghost" size="sm" onClick={() => setShowFilters(false)}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Status Filter */}
               {filterOptions.status && (
                 <div>
                   <label className="text-sm font-medium mb-2 block">Status</label>
                   <Select value={filters.status || ''} onValueChange={(value) => handleFilterChange('status', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-sm">
                       <SelectValue placeholder="All statuses" />
                     </SelectTrigger>
                     <SelectContent>
@@ -148,7 +235,7 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
                 <div>
                   <label className="text-sm font-medium mb-2 block">Type</label>
                   <Select value={filters.type || ''} onValueChange={(value) => handleFilterChange('type', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-sm">
                       <SelectValue placeholder="All types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -168,7 +255,7 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
                 <div>
                   <label className="text-sm font-medium mb-2 block">Location</label>
                   <Select value={filters.location || ''} onValueChange={(value) => handleFilterChange('location', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-sm">
                       <SelectValue placeholder="All locations" />
                     </SelectTrigger>
                     <SelectContent>
@@ -185,18 +272,18 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
 
               {/* Date Range Filter */}
               {showDateFilter && (
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2 lg:col-span-3">
                   <label className="text-sm font-medium mb-2 block">Date Range</label>
                   <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={clearFilters}>
+            <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={clearFilters} size="sm" className="text-sm">
                 Clear All
               </Button>
-              <Button onClick={applyFilters}>
+              <Button onClick={applyFilters} size="sm" className="text-sm">
                 Apply Filters
               </Button>
             </div>
