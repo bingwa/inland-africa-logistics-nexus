@@ -1,17 +1,16 @@
 
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FilterExportBar } from "@/components/FilterExportBar";
-import { Package, Search, Plus, MapPin, Clock, Weight, DollarSign, Thermometer, Shield, Loader2 } from "lucide-react";
+import { Package, Clock, MapPin, DollarSign, Thermometer, Shield, Loader2, Weight } from "lucide-react";
 import { useState } from "react";
 import { useCargo } from "@/hooks/useSupabaseData";
+import { AddCargoModal } from "@/components/modals/AddCargoModal";
+import { CargoActions } from "@/components/cargo/CargoActions";
 
 const CargoManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [filters, setFilters] = useState({});
   const { data: cargoData, isLoading, error } = useCargo();
 
@@ -69,7 +68,32 @@ const CargoManagement = () => {
   };
 
   const handleExport = (format: string) => {
-    console.log(`Exporting cargo data in ${format} format`);
+    const exportData = filteredCargo.map(cargo => ({
+      cargoNumber: cargo.cargo_number,
+      clientName: cargo.client_name,
+      clientContact: cargo.client_contact,
+      status: cargo.status,
+      weight: cargo.weight_kg,
+      value: cargo.value,
+      origin: cargo.pickup_address,
+      destination: cargo.delivery_address,
+      description: cargo.description
+    }));
+
+    if (format === 'csv') {
+      const csv = [
+        Object.keys(exportData[0] || {}).join(','),
+        ...exportData.map(row => Object.values(row).join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cargo_data.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (
@@ -84,10 +108,7 @@ const CargoManagement = () => {
             </h1>
             <p className="text-muted-foreground">Track and manage cargo shipments and deliveries</p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Cargo
-          </Button>
+          <AddCargoModal />
         </div>
 
         {/* Statistics */}
@@ -224,19 +245,8 @@ const CargoManagement = () => {
                       )}
                     </div>
                     
-                    <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border">
-                      <Button size="sm" variant="outline" className="border-blue-400 text-foreground hover:bg-blue-50">
-                        Track Location
-                      </Button>
-                      <Button size="sm" variant="outline" className="border-green-400 text-foreground hover:bg-green-50">
-                        Update Status
-                      </Button>
-                      <Button size="sm" variant="outline" className="border-yellow-400 text-foreground hover:bg-yellow-50">
-                        Generate Label
-                      </Button>
-                      <Button size="sm" variant="outline" className="border-purple-400 text-foreground hover:bg-purple-50">
-                        Contact Client
-                      </Button>
+                    <div className="mt-4 pt-3 border-t border-border">
+                      <CargoActions cargo={cargo} />
                     </div>
                   </CardContent>
                 </Card>
