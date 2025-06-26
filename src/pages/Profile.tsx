@@ -74,13 +74,19 @@ const Profile = () => {
   const handleInputChange = (field: string, value: any) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
-      setProfileData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof typeof prev],
-          [child]: value
+      setProfileData(prev => {
+        const parentObj = prev[parent as keyof typeof prev];
+        if (typeof parentObj === 'object' && parentObj !== null) {
+          return {
+            ...prev,
+            [parent]: {
+              ...parentObj,
+              [child]: value
+            }
+          };
         }
-      }));
+        return prev;
+      });
     } else {
       setProfileData(prev => ({
         ...prev,
