@@ -1,5 +1,5 @@
 
-import { Truck, Calendar, Package, Settings, FileText, Gauge, Route } from "lucide-react";
+import { Truck, Calendar, Package, Settings, FileText, Gauge, Route, Box } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import {
   Sidebar,
@@ -33,6 +33,11 @@ const menuItems = [
     title: "Inventory & Parts",
     url: "/inventory",
     icon: Package,
+  },
+  {
+    title: "Cargo Management",
+    url: "/cargo",
+    icon: Box,
   },
   {
     title: "Trips & Routes",

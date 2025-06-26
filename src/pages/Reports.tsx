@@ -1,16 +1,17 @@
+
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { Download, Calendar, FileText, TrendingUp, DollarSign, Truck, MapPin, Loader2 } from "lucide-react";
+import { Download, Calendar, FileText, TrendingUp, DollarSign, Truck, MapPin, Loader2, Eye } from "lucide-react";
 import { useState } from "react";
 import { useTrucks, useTrips, useFuelRecords } from "@/hooks/useSupabaseData";
 import { useToast } from "@/hooks/use-toast";
 import { CustomReportGenerator } from "@/components/CustomReportGenerator";
 
 const Reports = () => {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [showCustomReportGenerator, setShowCustomReportGenerator] = useState(false);
   const { data: trucks, isLoading: trucksLoading } = useTrucks();
   const { data: trips, isLoading: tripsLoading } = useTrips();
@@ -23,7 +24,7 @@ const Reports = () => {
   const monthlyRevenue = trips?.reduce((sum, trip) => sum + (trip.cargo_value_usd * 130), 0) || 0;
   const totalMileage = trucks?.reduce((sum, truck) => sum + (truck.mileage || 0), 0) || 0;
   const fleetEfficiency = trucks ? Math.round((trucks.filter(t => t.status === 'active').length / trucks.length) * 100) : 0;
-  const costSavings = Math.round(monthlyRevenue * 0.065); // Estimated 6.5% cost savings
+  const costSavings = Math.round(monthlyRevenue * 0.065);
 
   // Performance data for charts
   const monthlyData = [
@@ -43,12 +44,23 @@ const Reports = () => {
   ];
 
   const handleDownloadReport = async (reportName: string) => {
-    setIsGenerating(true);
+    setIsGenerating(reportName);
     try {
-      // Simulate report generation
+      // Simulate report generation and download
       await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Create a mock PDF download
+      const element = document.createElement('a');
+      const file = new Blob([`${reportName} - Generated on ${new Date().toLocaleDateString()}`], 
+        { type: 'text/plain' });
+      element.href = URL.createObjectURL(file);
+      element.download = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      
       toast({
-        title: "Report Generated",
+        title: "Report Downloaded",
         description: `${reportName} has been downloaded successfully.`,
       });
     } catch (error) {
@@ -58,14 +70,50 @@ const Reports = () => {
         variant: "destructive",
       });
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(null);
     }
   };
 
   const handleViewReport = (reportName: string) => {
+    // Open a new window with report preview
+    const reportWindow = window.open('', '_blank', 'width=800,height=600');
+    if (reportWindow) {
+      reportWindow.document.write(`
+        <html>
+          <head>
+            <title>${reportName}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              h1 { color: #333; }
+              .header { border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+              .content { margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>${reportName}</h1>
+              <p>Generated on: ${new Date().toLocaleDateString()}</p>
+            </div>
+            <div class="content">
+              <p>This is a preview of the ${reportName}. The full report contains detailed analytics and insights.</p>
+              <p>Report data is based on current system information and may be updated in real-time.</p>
+            </div>
+          </body>
+        </html>
+      `);
+      reportWindow.document.close();
+    }
+    
     toast({
-      title: "Opening Report",
-      description: `Opening ${reportName} in a new window...`,
+      title: "Report Opened",
+      description: `${reportName} opened in a new window.`,
+    });
+  };
+
+  const handleScheduleReport = (reportName: string) => {
+    toast({
+      title: "Report Scheduled",
+      description: `${reportName} has been scheduled for weekly generation.`,
     });
   };
 
@@ -229,11 +277,30 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground">Last: 2024-06-28 • 2.3 MB</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport("Fleet Performance Summary")}>
-                      <Download className="w-4 h-4" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDownloadReport("Fleet Performance Summary")}
+                      disabled={isGenerating === "Fleet Performance Summary"}
+                    >
+                      {isGenerating === "Fleet Performance Summary" ? 
+                        <Loader2 className="w-4 h-4 animate-spin" /> : 
+                        <Download className="w-4 h-4" />
+                      }
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleViewReport("Fleet Performance Summary")}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleScheduleReport("Fleet Performance Summary")}
+                    >
                       <Calendar className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleViewReport("Fleet Performance Summary")}
+                    >
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -244,11 +311,30 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground">Last: 2024-06-27 • 1.8 MB</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport("Vehicle Utilization Report")}>
-                      <Download className="w-4 h-4" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDownloadReport("Vehicle Utilization Report")}
+                      disabled={isGenerating === "Vehicle Utilization Report"}
+                    >
+                      {isGenerating === "Vehicle Utilization Report" ? 
+                        <Loader2 className="w-4 h-4 animate-spin" /> : 
+                        <Download className="w-4 h-4" />
+                      }
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleViewReport("Vehicle Utilization Report")}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleScheduleReport("Vehicle Utilization Report")}
+                    >
                       <Calendar className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleViewReport("Vehicle Utilization Report")}
+                    >
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -259,11 +345,30 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground">Last: 2024-06-26 • 1.2 MB</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport("Maintenance Schedule Report")}>
-                      <Download className="w-4 h-4" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDownloadReport("Maintenance Schedule Report")}
+                      disabled={isGenerating === "Maintenance Schedule Report"}
+                    >
+                      {isGenerating === "Maintenance Schedule Report" ? 
+                        <Loader2 className="w-4 h-4 animate-spin" /> : 
+                        <Download className="w-4 h-4" />
+                      }
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleViewReport("Maintenance Schedule Report")}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleScheduleReport("Maintenance Schedule Report")}
+                    >
                       <Calendar className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleViewReport("Maintenance Schedule Report")}
+                    >
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -291,11 +396,30 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground">Last: 2024-06-28 • 3.1 MB</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport("Monthly Revenue Report")}>
-                      <Download className="w-4 h-4" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDownloadReport("Monthly Revenue Report")}
+                      disabled={isGenerating === "Monthly Revenue Report"}
+                    >
+                      {isGenerating === "Monthly Revenue Report" ? 
+                        <Loader2 className="w-4 h-4 animate-spin" /> : 
+                        <Download className="w-4 h-4" />
+                      }
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleViewReport("Monthly Revenue Report")}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleScheduleReport("Monthly Revenue Report")}
+                    >
                       <Calendar className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleViewReport("Monthly Revenue Report")}
+                    >
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -306,11 +430,30 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground">Last: 2024-06-25 • 2.7 MB</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport("Cost Analysis Report")}>
-                      <Download className="w-4 h-4" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDownloadReport("Cost Analysis Report")}
+                      disabled={isGenerating === "Cost Analysis Report"}
+                    >
+                      {isGenerating === "Cost Analysis Report" ? 
+                        <Loader2 className="w-4 h-4 animate-spin" /> : 
+                        <Download className="w-4 h-4" />
+                      }
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleViewReport("Cost Analysis Report")}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleScheduleReport("Cost Analysis Report")}
+                    >
                       <Calendar className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleViewReport("Cost Analysis Report")}
+                    >
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -321,11 +464,30 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground">Last: 2024-06-24 • 1.9 MB</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport("Profit & Loss Statement")}>
-                      <Download className="w-4 h-4" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDownloadReport("Profit & Loss Statement")}
+                      disabled={isGenerating === "Profit & Loss Statement"}
+                    >
+                      {isGenerating === "Profit & Loss Statement" ? 
+                        <Loader2 className="w-4 h-4 animate-spin" /> : 
+                        <Download className="w-4 h-4" />
+                      }
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleViewReport("Profit & Loss Statement")}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleScheduleReport("Profit & Loss Statement")}
+                    >
                       <Calendar className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleViewReport("Profit & Loss Statement")}
+                    >
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -353,11 +515,30 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground">Last: 2024-06-28 • 2.5 MB</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport("Trip Performance Report")}>
-                      <Download className="w-4 h-4" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDownloadReport("Trip Performance Report")}
+                      disabled={isGenerating === "Trip Performance Report"}
+                    >
+                      {isGenerating === "Trip Performance Report" ? 
+                        <Loader2 className="w-4 h-4 animate-spin" /> : 
+                        <Download className="w-4 h-4" />
+                      }
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleViewReport("Trip Performance Report")}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleScheduleReport("Trip Performance Report")}
+                    >
                       <Calendar className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleViewReport("Trip Performance Report")}
+                    >
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -368,11 +549,30 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground">Last: 2024-06-27 • 1.6 MB</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport("Driver Performance Report")}>
-                      <Download className="w-4 h-4" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDownloadReport("Driver Performance Report")}
+                      disabled={isGenerating === "Driver Performance Report"}
+                    >
+                      {isGenerating === "Driver Performance Report" ? 
+                        <Loader2 className="w-4 h-4 animate-spin" /> : 
+                        <Download className="w-4 h-4" />
+                      }
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleViewReport("Driver Performance Report")}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleScheduleReport("Driver Performance Report")}
+                    >
                       <Calendar className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleViewReport("Driver Performance Report")}
+                    >
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -383,11 +583,30 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground">Last: 2024-06-26 • 2.2 MB</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport("Route Optimization Report")}>
-                      <Download className="w-4 h-4" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDownloadReport("Route Optimization Report")}
+                      disabled={isGenerating === "Route Optimization Report"}
+                    >
+                      {isGenerating === "Route Optimization Report" ? 
+                        <Loader2 className="w-4 h-4 animate-spin" /> : 
+                        <Download className="w-4 h-4" />
+                      }
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleViewReport("Route Optimization Report")}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleScheduleReport("Route Optimization Report")}
+                    >
                       <Calendar className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleViewReport("Route Optimization Report")}
+                    >
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
