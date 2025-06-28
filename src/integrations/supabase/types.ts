@@ -390,6 +390,7 @@ export type Database = {
           destination: string
           distance_km: number | null
           driver_id: string | null
+          estimated_wear_tear_ksh: number | null
           fuel_cost: number | null
           id: string
           notes: string | null
@@ -412,6 +413,7 @@ export type Database = {
           destination: string
           distance_km?: number | null
           driver_id?: string | null
+          estimated_wear_tear_ksh?: number | null
           fuel_cost?: number | null
           id?: string
           notes?: string | null
@@ -434,6 +436,7 @@ export type Database = {
           destination?: string
           distance_km?: number | null
           driver_id?: string | null
+          estimated_wear_tear_ksh?: number | null
           fuel_cost?: number | null
           id?: string
           notes?: string | null
