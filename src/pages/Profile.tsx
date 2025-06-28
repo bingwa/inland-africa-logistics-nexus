@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -24,94 +23,86 @@ import {
   Bell,
   Lock,
   Activity,
-  Award,
-  Briefcase
+  Briefcase,
+  Loader2
 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
-  const [profileData, setProfileData] = useState({
-    fullName: 'John Adebayo',
-    email: 'john.adebayo@translogistics.co.ke',
-    phone: '+254 712 345 678',
-    role: 'Fleet Manager',
-    department: 'Operations',
-    employeeId: 'TL-2024-001',
-    joinDate: '2024-01-15',
-    location: 'Nairobi, Kenya',
-    bio: 'Experienced fleet manager with 8+ years in logistics and transportation management. Specialized in route optimization and driver performance management.',
-    address: 'Westlands, Nairobi',
-    emergencyContact: '+254 722 987 654',
-    licenseNumber: 'DL-123456789',
-    notifications: {
-      email: true,
-      sms: false,
-      push: true
+  const { profile, loading, updateProfile } = useProfile();
+  const [formData, setFormData] = useState(profile || {});
+
+  // Update form data when profile loads
+  useState(() => {
+    if (profile) {
+      setFormData(profile);
     }
   });
-  
-  const [originalData, setOriginalData] = useState(profileData);
 
-  const { toast } = useToast();
-
-  // Load saved profile data on component mount
-  useEffect(() => {
-    const savedProfile = localStorage.getItem('userProfile');
-    if (savedProfile) {
-      const parsedProfile = JSON.parse(savedProfile);
-      setProfileData(parsedProfile);
-      setOriginalData(parsedProfile);
+  const handleSave = async () => {
+    const success = await updateProfile(formData);
+    if (success) {
+      setIsEditing(false);
     }
-  }, []);
-
-  const handleSave = () => {
-    // Save to localStorage
-    localStorage.setItem('userProfile', JSON.stringify(profileData));
-    setIsEditing(false);
-    setOriginalData(profileData);
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been successfully saved.",
-    });
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setProfileData(originalData);
+    setFormData(profile || {});
   };
 
   const handleInputChange = (field: string, value: any) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
-      setProfileData(prev => {
-        const parentObj = prev[parent as keyof typeof prev];
-        if (typeof parentObj === 'object' && parentObj !== null) {
-          return {
-            ...prev,
-            [parent]: {
-              ...parentObj,
-              [child]: value
-            }
-          };
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent as keyof typeof prev],
+          [child]: value
         }
-        return prev;
-      });
+      }));
     } else {
-      setProfileData(prev => ({
+      setFormData(prev => ({
         ...prev,
         [field]: value
       }));
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/auth';
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Layout>
+        <div className="text-center text-red-600">
+          Unable to load profile data.
+        </div>
+      </Layout>
+    );
+  }
+
   const getRoleColor = (role: string) => {
     const colors = {
       'Fleet Manager': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
       'Admin': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
-      'Driver': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+      'driver': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
       'Supervisor': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
     };
     return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800 dark:bg-gray-800/20 dark:text-gray-400';
@@ -138,10 +129,15 @@ const Profile = () => {
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             {!isEditing ? (
-              <Button onClick={() => setIsEditing(true)} className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none">
-                <Edit3 className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
+              <>
+                <Button onClick={() => setIsEditing(true)} className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none">
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+                <Button variant="outline" onClick={handleSignOut} className="flex-1 sm:flex-none">
+                  Sign Out
+                </Button>
+              </>
             ) : (
               <>
                 <Button variant="outline" onClick={handleCancel} className="flex-1 sm:flex-none">
@@ -164,9 +160,9 @@ const Profile = () => {
               <CardContent className="p-4 sm:p-6 text-center">
                 <div className="relative inline-block mb-4">
                   <Avatar className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mx-auto">
-                    <AvatarImage src="" alt={profileData.fullName} />
+                    <AvatarImage src="" alt={profile.full_name || ''} />
                     <AvatarFallback className="text-lg sm:text-xl font-bold bg-primary text-primary-foreground">
-                      {profileData.fullName.split(' ').map(n => n[0]).join('')}
+                      {profile.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
@@ -176,26 +172,26 @@ const Profile = () => {
                   )}
                 </div>
                 
-                <h3 className="text-base sm:text-lg font-bold text-foreground">{profileData.fullName}</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 break-all">{profileData.email}</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">{profile.full_name}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2">{profile.employee_id}</p>
                 
-                <Badge className={getRoleColor(profileData.role) + " mb-4 text-xs"}>
+                <Badge className={getRoleColor(profile.role || '') + " mb-4 text-xs"}>
                   <Shield className="w-3 h-3 mr-1" />
-                  {profileData.role}
+                  {profile.role}
                 </Badge>
                 
                 <div className="space-y-2 text-xs sm:text-sm">
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <Briefcase className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span>{profileData.department}</span>
+                    <span>{profile.department}</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span>Joined {new Date(profileData.joinDate).toLocaleDateString()}</span>
+                    <span>Joined {profile.join_date ? new Date(profile.join_date).toLocaleDateString() : 'N/A'}</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span>{profileData.location}</span>
+                    <span>{profile.location}</span>
                   </div>
                 </div>
               </CardContent>
@@ -235,8 +231,8 @@ const Profile = () => {
                         <Label htmlFor="fullName" className="text-sm">Full Name</Label>
                         <Input
                           id="fullName"
-                          value={profileData.fullName}
-                          onChange={(e) => handleInputChange('fullName', e.target.value)}
+                          value={formData.full_name || ''}
+                          onChange={(e) => handleInputChange('full_name', e.target.value)}
                           disabled={!isEditing}
                           className="text-sm"
                         />
@@ -245,27 +241,16 @@ const Profile = () => {
                         <Label htmlFor="employeeId" className="text-sm">Employee ID</Label>
                         <Input
                           id="employeeId"
-                          value={profileData.employeeId}
+                          value={formData.employee_id || ''}
                           disabled
                           className="bg-muted text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="email" className="text-sm">Email Address</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={profileData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          disabled={!isEditing}
-                          className="text-sm"
                         />
                       </div>
                       <div>
                         <Label htmlFor="phone" className="text-sm">Phone Number</Label>
                         <Input
                           id="phone"
-                          value={profileData.phone}
+                          value={formData.phone || ''}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
                           disabled={!isEditing}
                           className="text-sm"
@@ -274,7 +259,7 @@ const Profile = () => {
                       <div>
                         <Label htmlFor="role" className="text-sm">Role</Label>
                         <Select 
-                          value={profileData.role} 
+                          value={formData.role || ''} 
                           onValueChange={(value) => handleInputChange('role', value)} 
                           disabled={!isEditing}
                         >
@@ -283,7 +268,7 @@ const Profile = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Fleet Manager">Fleet Manager</SelectItem>
-                            <SelectItem value="Driver">Driver</SelectItem>
+                            <SelectItem value="driver">Driver</SelectItem>
                             <SelectItem value="Supervisor">Supervisor</SelectItem>
                             <SelectItem value="Admin">Admin</SelectItem>
                           </SelectContent>
@@ -293,8 +278,18 @@ const Profile = () => {
                         <Label htmlFor="department" className="text-sm">Department</Label>
                         <Input
                           id="department"
-                          value={profileData.department}
+                          value={formData.department || ''}
                           onChange={(e) => handleInputChange('department', e.target.value)}
+                          disabled={!isEditing}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="location" className="text-sm">Location</Label>
+                        <Input
+                          id="location"
+                          value={formData.location || ''}
+                          onChange={(e) => handleInputChange('location', e.target.value)}
                           disabled={!isEditing}
                           className="text-sm"
                         />
@@ -312,13 +307,12 @@ const Profile = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="address" className="text-sm">Address</Label>
-                        <Textarea
+                        <Input
                           id="address"
-                          value={profileData.address}
+                          value={formData.address || ''}
                           onChange={(e) => handleInputChange('address', e.target.value)}
                           disabled={!isEditing}
-                          rows={3}
-                          className="text-sm resize-none"
+                          className="text-sm"
                         />
                       </div>
                       <div className="space-y-4">
@@ -326,8 +320,8 @@ const Profile = () => {
                           <Label htmlFor="emergencyContact" className="text-sm">Emergency Contact</Label>
                           <Input
                             id="emergencyContact"
-                            value={profileData.emergencyContact}
-                            onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
+                            value={formData.emergency_contact || ''}
+                            onChange={(e) => handleInputChange('emergency_contact', e.target.value)}
                             disabled={!isEditing}
                             className="text-sm"
                           />
@@ -336,31 +330,14 @@ const Profile = () => {
                           <Label htmlFor="licenseNumber" className="text-sm">License Number</Label>
                           <Input
                             id="licenseNumber"
-                            value={profileData.licenseNumber}
-                            onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
+                            value={formData.license_number || ''}
+                            onChange={(e) => handleInputChange('license_number', e.target.value)}
                             disabled={!isEditing}
                             className="text-sm"
                           />
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base sm:text-lg">Professional Bio</CardTitle>
-                    <CardDescription className="text-sm">Tell us about your experience and expertise</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Textarea
-                      value={profileData.bio}
-                      onChange={(e) => handleInputChange('bio', e.target.value)}
-                      disabled={!isEditing}
-                      rows={4}
-                      placeholder="Share your professional background, experience, and expertise..."
-                      className="text-sm resize-none"
-                    />
                   </CardContent>
                 </Card>
               </div>
@@ -384,8 +361,8 @@ const Profile = () => {
                         </div>
                       </div>
                       <Switch 
-                        checked={profileData.notifications.email} 
-                        onCheckedChange={(checked) => handleInputChange('notifications.email', checked)}
+                        checked={formData.email_notifications || false} 
+                        onCheckedChange={(checked) => handleInputChange('email_notifications', checked)}
                         disabled={!isEditing}
                       />
                     </div>
@@ -399,8 +376,8 @@ const Profile = () => {
                         </div>
                       </div>
                       <Switch 
-                        checked={profileData.notifications.sms} 
-                        onCheckedChange={(checked) => handleInputChange('notifications.sms', checked)}
+                        checked={formData.sms_notifications || false} 
+                        onCheckedChange={(checked) => handleInputChange('sms_notifications', checked)}
                         disabled={!isEditing}
                       />
                     </div>
@@ -414,8 +391,8 @@ const Profile = () => {
                         </div>
                       </div>
                       <Switch 
-                        checked={profileData.notifications.push} 
-                        onCheckedChange={(checked) => handleInputChange('notifications.push', checked)}
+                        checked={formData.push_notifications || false} 
+                        onCheckedChange={(checked) => handleInputChange('push_notifications', checked)}
                         disabled={!isEditing}
                       />
                     </div>
