@@ -302,7 +302,7 @@ const TripManagement = () => {
                 <div className="text-center py-8 text-muted-foreground">
                   No trips found. Create your first trip to get started.
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -313,7 +313,7 @@ const TripManagement = () => {
 
         {selectedTrip && (
           <TripDetailsModal
-            trip={selectedTriip}
+            trip={selectedTrip}
             onClose={() => setSelectedTrip(null)}
           />
         )}
