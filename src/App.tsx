@@ -19,6 +19,9 @@ import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import DriverDashboard from "./pages/DriverDashboard";
+import DriverTrips from "./pages/DriverTrips";
+import DriverSchedule from "./pages/DriverSchedule";
+import DriverVehicle from "./pages/DriverVehicle";
 
 const queryClient = new QueryClient();
 
@@ -42,11 +45,30 @@ const App = () => (
                   <Dashboard />
                 </ProtectedRoute>
               } />
+              
+              {/* Driver Routes */}
               <Route path="/driver-dashboard" element={
                 <ProtectedRoute>
                   <DriverDashboard />
                 </ProtectedRoute>
               } />
+              <Route path="/driver-trips" element={
+                <ProtectedRoute>
+                  <DriverTrips />
+                </ProtectedRoute>
+              } />
+              <Route path="/driver-schedule" element={
+                <ProtectedRoute>
+                  <DriverSchedule />
+                </ProtectedRoute>
+              } />
+              <Route path="/driver-vehicle" element={
+                <ProtectedRoute>
+                  <DriverVehicle />
+                </ProtectedRoute>
+              } />
+              
+              {/* Regular System Routes */}
               <Route path="/fleet" element={
                 <ProtectedRoute>
                   <FleetManagement />

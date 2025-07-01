@@ -1,3 +1,4 @@
+
 import { DriverLayout } from "@/components/DriverLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +12,7 @@ import {
   CheckCircle, 
   AlertCircle,
   Navigation,
-  Fuel,
-  Loader2
+  Package
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,35 +37,14 @@ interface DriverTrip {
   model: string | null;
 }
 
-const DriverDashboard = () => {
+const DriverTrips = () => {
   const [trips, setTrips] = useState<DriverTrip[]>([]);
   const [loading, setLoading] = useState(true);
-  const [driverName, setDriverName] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
     fetchDriverTrips();
-    fetchDriverInfo();
   }, []);
-
-  const fetchDriverInfo = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        setDriverName(profile.full_name || 'Driver');
-      }
-    } catch (error) {
-      console.error('Error fetching driver info:', error);
-    }
-  };
 
   const fetchDriverTrips = async () => {
     try {
@@ -116,7 +95,7 @@ const DriverDashboard = () => {
         description: `Trip status changed to ${newStatus.replace('_', ' ')}`,
       });
 
-      fetchDriverTrips(); // Refresh the trips
+      fetchDriverTrips();
     } catch (error: any) {
       toast({
         title: "Error updating trip",
@@ -139,98 +118,84 @@ const DriverDashboard = () => {
     return (
       <DriverLayout>
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin" />
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
         </div>
       </DriverLayout>
     );
   }
 
-  const activeTrips = trips.filter(trip => trip.status === 'in_progress');
-  const upcomingTrips = trips.filter(trip => trip.status === 'planned');
-  const completedTrips = trips.filter(trip => trip.status === 'completed');
-
   return (
     <DriverLayout>
       <div className="space-y-6 animate-fade-in">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
               <Route className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
-              Driver Dashboard
+              My Trips
             </h1>
-            <p className="text-muted-foreground">Welcome back, {driverName}!</p>
+            <p className="text-muted-foreground">View and manage your assigned trips</p>
           </div>
         </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <Card className="bg-blue-50 border-blue-200 hover:shadow-lg transition-all duration-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-blue-700">Active Trips</p>
-                  <p className="text-xl sm:text-2xl font-bold text-blue-600">{activeTrips.length}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-600">
+                    {trips.filter(trip => trip.status === 'in_progress').length}
+                  </p>
                 </div>
                 <Route className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-orange-50 border-orange-200 hover:shadow-lg transition-all duration-300">
+          <Card className="bg-orange-50 border-orange-200">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-700">Upcoming Trips</p>
-                  <p className="text-xl sm:text-2xl font-bold text-orange-600">{upcomingTrips.length}</p>
+                  <p className="text-sm font-medium text-orange-700">Upcoming</p>
+                  <p className="text-xl sm:text-2xl font-bold text-orange-600">
+                    {trips.filter(trip => trip.status === 'planned').length}
+                  </p>
                 </div>
                 <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-green-50 border-green-200 hover:shadow-lg transition-all duration-300">
+          <Card className="bg-green-50 border-green-200">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-green-700">Completed</p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-600">{completedTrips.length}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-600">
+                    {trips.filter(trip => trip.status === 'completed').length}
+                  </p>
                 </div>
                 <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
-          
-          <Card className="bg-purple-50 border-purple-200 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-purple-700">Total Distance</p>
-                  <p className="text-xl sm:text-2xl font-bold text-purple-600">
-                    {trips.reduce((sum, trip) => sum + (trip.distance_km || 0), 0).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-purple-600">km</p>
-                </div>
-                <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* My Trips */}
-        <Card className="border-blue-200">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-blue-900">My Assigned Trips</CardTitle>
+            <CardTitle>Trip Details</CardTitle>
             <CardDescription>Your current and upcoming trip assignments</CardDescription>
           </CardHeader>
           <CardContent>
             {trips.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No trips assigned yet. Check back later for new assignments.
+                <Package className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p>No trips assigned yet.</p>
+                <p className="text-sm">Check back later for new assignments.</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {trips.slice(0, 5).map((trip) => (
+                {trips.map((trip) => (
                   <Card key={trip.id} className="hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
                     <CardContent className="p-6">
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -254,16 +219,7 @@ const DriverDashboard = () => {
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Truck className="w-4 h-4" />
-                              <span>Vehicle</span>
-                            </div>
-                            <p className="font-medium text-foreground">
-                              {trip.truck_number ? `${trip.truck_number} (${trip.make} ${trip.model})` : 'N/A'}
-                            </p>
-                          </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                           <div>
                             <div className="flex items-center gap-1 text-muted-foreground">
                               <Calendar className="w-4 h-4" />
@@ -290,11 +246,11 @@ const DriverDashboard = () => {
                           </div>
                           <div>
                             <div className="flex items-center gap-1 text-muted-foreground">
-                              <Navigation className="w-4 h-4" />
-                              <span>Assigned</span>
+                              <Truck className="w-4 h-4" />
+                              <span>Vehicle</span>
                             </div>
                             <p className="font-medium text-foreground">
-                              {new Date(trip.assigned_at).toLocaleDateString()}
+                              {trip.truck_number || 'N/A'}
                             </p>
                           </div>
                         </div>
@@ -348,4 +304,4 @@ const DriverDashboard = () => {
   );
 };
 
-export default DriverDashboard;
+export default DriverTrips;
