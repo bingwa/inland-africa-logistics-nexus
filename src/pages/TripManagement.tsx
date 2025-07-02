@@ -3,7 +3,7 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Route, Plus, MapPin, Calendar, User, Truck, Clock, Loader2, Wrench } from "lucide-react";
+import { Route, Plus, MapPin, Calendar, User, Truck, Clock, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useTrips, useUpdateTripStatus } from "@/hooks/useSupabaseData";
 import { AddTripForm } from "@/components/forms/AddTripForm";
@@ -215,7 +215,7 @@ const TripManagement = () => {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                         <div>
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Truck className="w-4 h-4" />
@@ -236,15 +236,6 @@ const TripManagement = () => {
                             <span>Distance</span>
                           </div>
                           <p className="font-medium text-foreground">{trip.distance_km || 0} km</p>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Wrench className="w-4 h-4" />
-                            <span>Wear & Tear</span>
-                          </div>
-                          <p className="font-medium text-foreground">
-                            KSh {trip.estimated_wear_tear_ksh?.toLocaleString() || 'N/A'}
-                          </p>
                         </div>
                         <div>
                           <div className="flex items-center gap-1 text-muted-foreground">

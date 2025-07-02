@@ -63,59 +63,6 @@ export type Database = {
             foreignKeyName: "cargo_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
-            referencedRelation: "driver_trip_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cargo_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      driver_trip_assignments: {
-        Row: {
-          assigned_at: string | null
-          driver_id: string | null
-          id: string
-          status: string | null
-          trip_id: string | null
-        }
-        Insert: {
-          assigned_at?: string | null
-          driver_id?: string | null
-          id?: string
-          status?: string | null
-          trip_id?: string | null
-        }
-        Update: {
-          assigned_at?: string | null
-          driver_id?: string | null
-          id?: string
-          status?: string | null
-          trip_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "driver_trip_assignments_driver_id_fkey"
-            columns: ["driver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "driver_trip_assignments_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "driver_trip_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "driver_trip_assignments_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
             referencedRelation: "trips"
             referencedColumns: ["id"]
           },
@@ -230,13 +177,6 @@ export type Database = {
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "drivers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fuel_records_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "driver_trip_view"
             referencedColumns: ["id"]
           },
           {
@@ -364,57 +304,27 @@ export type Database = {
       }
       profiles: {
         Row: {
-          address: string | null
           created_at: string | null
-          department: string | null
-          email_notifications: boolean | null
-          emergency_contact: string | null
-          employee_id: string | null
           full_name: string | null
           id: string
-          join_date: string | null
-          license_number: string | null
-          location: string | null
           phone: string | null
-          push_notifications: boolean | null
           role: string | null
-          sms_notifications: boolean | null
           updated_at: string | null
         }
         Insert: {
-          address?: string | null
           created_at?: string | null
-          department?: string | null
-          email_notifications?: boolean | null
-          emergency_contact?: string | null
-          employee_id?: string | null
           full_name?: string | null
           id: string
-          join_date?: string | null
-          license_number?: string | null
-          location?: string | null
           phone?: string | null
-          push_notifications?: boolean | null
           role?: string | null
-          sms_notifications?: boolean | null
           updated_at?: string | null
         }
         Update: {
-          address?: string | null
           created_at?: string | null
-          department?: string | null
-          email_notifications?: boolean | null
-          emergency_contact?: string | null
-          employee_id?: string | null
           full_name?: string | null
           id?: string
-          join_date?: string | null
-          license_number?: string | null
-          location?: string | null
           phone?: string | null
-          push_notifications?: boolean | null
           role?: string | null
-          sms_notifications?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
@@ -480,7 +390,6 @@ export type Database = {
           destination: string
           distance_km: number | null
           driver_id: string | null
-          estimated_wear_tear_ksh: number | null
           fuel_cost: number | null
           id: string
           notes: string | null
@@ -503,7 +412,6 @@ export type Database = {
           destination: string
           distance_km?: number | null
           driver_id?: string | null
-          estimated_wear_tear_ksh?: number | null
           fuel_cost?: number | null
           id?: string
           notes?: string | null
@@ -526,7 +434,6 @@ export type Database = {
           destination?: string
           distance_km?: number | null
           driver_id?: string | null
-          estimated_wear_tear_ksh?: number | null
           fuel_cost?: number | null
           id?: string
           notes?: string | null
@@ -661,52 +568,7 @@ export type Database = {
       }
     }
     Views: {
-      driver_trip_view: {
-        Row: {
-          actual_arrival: string | null
-          actual_departure: string | null
-          assigned_at: string | null
-          assignment_status: string | null
-          cargo_value_usd: number | null
-          created_at: string | null
-          customer_contact: string | null
-          destination: string | null
-          distance_km: number | null
-          driver_id: string | null
-          estimated_wear_tear_ksh: number | null
-          fuel_cost: number | null
-          id: string | null
-          make: string | null
-          model: string | null
-          notes: string | null
-          origin: string | null
-          other_expenses: number | null
-          planned_arrival: string | null
-          planned_departure: string | null
-          status: string | null
-          toll_cost: number | null
-          trip_number: string | null
-          truck_id: string | null
-          truck_number: string | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "trips_driver_id_fkey"
-            columns: ["driver_id"]
-            isOneToOne: false
-            referencedRelation: "drivers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trips_truck_id_fkey"
-            columns: ["truck_id"]
-            isOneToOne: false
-            referencedRelation: "trucks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       [_ in never]: never

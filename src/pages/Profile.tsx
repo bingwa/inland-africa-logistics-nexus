@@ -1,363 +1,485 @@
 
-import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { User, Settings, Shield, Bell, Mail, Phone, MapPin, Calendar, Briefcase, Car, Contact, Save } from "lucide-react";
-import { useProfile } from "@/hooks/useProfile";
-import { useAuth } from "@/hooks/useAuth";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Calendar, 
+  Shield, 
+  Edit3, 
+  Save, 
+  X,
+  Camera,
+  Bell,
+  Lock,
+  Activity,
+  Award,
+  Briefcase
+} from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
-  const { profile, loading, updateProfile } = useProfile();
-  const { user } = useAuth();
-  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    phone: '',
-    role: '',
-    employee_id: '',
-    department: '',
-    location: '',
-    address: '',
-    emergency_contact: '',
-    license_number: '',
-    email_notifications: true,
-    sms_notifications: false,
-    push_notifications: true,
-  });
-
-  // Update form data when profile loads
-  useState(() => {
-    if (profile) {
-      setFormData({
-        full_name: profile.full_name || '',
-        phone: profile.phone || '',
-        role: profile.role || '',
-        employee_id: profile.employee_id || '',
-        department: profile.department || '',
-        location: profile.location || '',
-        address: profile.address || '',
-        emergency_contact: profile.emergency_contact || '',
-        license_number: profile.license_number || '',
-        email_notifications: profile.email_notifications ?? true,
-        sms_notifications: profile.sms_notifications ?? false,
-        push_notifications: profile.push_notifications ?? true,
-      });
+  const [activeTab, setActiveTab] = useState('profile');
+  const [profileData, setProfileData] = useState({
+    fullName: 'John Adebayo',
+    email: 'john.adebayo@translogistics.co.ke',
+    phone: '+254 712 345 678',
+    role: 'Fleet Manager',
+    department: 'Operations',
+    employeeId: 'TL-2024-001',
+    joinDate: '2024-01-15',
+    location: 'Nairobi, Kenya',
+    bio: 'Experienced fleet manager with 8+ years in logistics and transportation management. Specialized in route optimization and driver performance management.',
+    address: 'Westlands, Nairobi',
+    emergencyContact: '+254 722 987 654',
+    licenseNumber: 'DL-123456789',
+    notifications: {
+      email: true,
+      sms: false,
+      push: true
     }
   });
+  
+  const [originalData, setOriginalData] = useState(profileData);
 
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  const { toast } = useToast();
 
-  const handleSave = async () => {
-    const success = await updateProfile(formData);
-    if (success) {
-      setIsEditing(false);
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated.",
-      });
+  // Load saved profile data on component mount
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('userProfile');
+    if (savedProfile) {
+      const parsedProfile = JSON.parse(savedProfile);
+      setProfileData(parsedProfile);
+      setOriginalData(parsedProfile);
     }
+  }, []);
+
+  const handleSave = () => {
+    // Save to localStorage
+    localStorage.setItem('userProfile', JSON.stringify(profileData));
+    setIsEditing(false);
+    setOriginalData(profileData);
+    toast({
+      title: "Profile Updated",
+      description: "Your profile information has been successfully saved.",
+    });
   };
 
   const handleCancel = () => {
-    if (profile) {
-      setFormData({
-        full_name: profile.full_name || '',
-        phone: profile.phone || '',
-        role: profile.role || '',
-        employee_id: profile.employee_id || '',
-        department: profile.department || '',
-        location: profile.location || '',
-        address: profile.address || '',
-        emergency_contact: profile.emergency_contact || '',
-        license_number: profile.license_number || '',
-        email_notifications: profile.email_notifications ?? true,
-        sms_notifications: profile.sms_notifications ?? false,
-        push_notifications: profile.push_notifications ?? true,
-      });
-    }
     setIsEditing(false);
+    setProfileData(originalData);
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </Layout>
-    );
-  }
+  const handleInputChange = (field: string, value: any) => {
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      setProfileData(prev => {
+        const parentObj = prev[parent as keyof typeof prev];
+        if (typeof parentObj === 'object' && parentObj !== null) {
+          return {
+            ...prev,
+            [parent]: {
+              ...parentObj,
+              [child]: value
+            }
+          };
+        }
+        return prev;
+      });
+    } else {
+      setProfileData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+
+  const getRoleColor = (role: string) => {
+    const colors = {
+      'Fleet Manager': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+      'Admin': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+      'Driver': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+      'Supervisor': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+    };
+    return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800 dark:bg-gray-800/20 dark:text-gray-400';
+  };
+
+  const tabs = [
+    { id: 'profile', label: 'Profile Information', icon: User },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'security', label: 'Security', icon: Lock },
+    { id: 'activity', label: 'Activity Log', icon: Activity }
+  ];
 
   return (
     <Layout>
-      <div className="space-y-6 animate-fade-in p-4 lg:p-6">
+      <div className="space-y-4 sm:space-y-6 animate-fade-in p-2 sm:p-4 lg:p-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-3">
-              <User className="w-6 h-6 lg:w-8 lg:h-8" />
-              My Profile
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
+              <User className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8" />
+              User Profile
             </h1>
-            <p className="text-muted-foreground">Manage your account settings and preferences</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Manage your account information and preferences</p>
           </div>
-          <div className="flex gap-2">
-            {isEditing ? (
+          <div className="flex gap-2 w-full sm:w-auto">
+            {!isEditing ? (
+              <Button onClick={() => setIsEditing(true)} className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none">
+                <Edit3 className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
+            ) : (
               <>
-                <Button variant="outline" onClick={handleCancel}>
+                <Button variant="outline" onClick={handleCancel} className="flex-1 sm:flex-none">
+                  <X className="w-4 h-4 mr-2" />
                   Cancel
                 </Button>
-                <Button onClick={handleSave}>
+                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none">
                   <Save className="w-4 h-4 mr-2" />
                   Save Changes
                 </Button>
               </>
-            ) : (
-              <Button onClick={() => setIsEditing(true)}>
-                <Settings className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Overview */}
-          <Card className="lg:col-span-1">
-            <CardHeader className="text-center">
-              <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <User className="w-12 h-12 text-primary" />
-              </div>
-              <CardTitle className="text-xl">{formData.full_name || 'User Name'}</CardTitle>
-              <CardDescription className="flex items-center justify-center gap-2">
-                <Mail className="w-4 h-4" />
-                {user?.email}
-              </CardDescription>
-              <div className="flex justify-center mt-2">
-                <Badge variant="secondary" className="capitalize">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+          {/* Profile Summary Card */}
+          <div className="lg:col-span-1">
+            <Card className="lg:sticky lg:top-6">
+              <CardContent className="p-4 sm:p-6 text-center">
+                <div className="relative inline-block mb-4">
+                  <Avatar className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mx-auto">
+                    <AvatarImage src="" alt={profileData.fullName} />
+                    <AvatarFallback className="text-lg sm:text-xl font-bold bg-primary text-primary-foreground">
+                      {profileData.fullName.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isEditing && (
+                    <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full w-6 h-6 sm:w-8 sm:h-8 p-0">
+                      <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                <h3 className="text-base sm:text-lg font-bold text-foreground">{profileData.fullName}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2 break-all">{profileData.email}</p>
+                
+                <Badge className={getRoleColor(profileData.role) + " mb-4 text-xs"}>
                   <Shield className="w-3 h-3 mr-1" />
-                  {formData.role}
+                  {profileData.role}
                 </Badge>
+                
+                <div className="space-y-2 text-xs sm:text-sm">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Briefcase className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span>{profileData.department}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span>Joined {new Date(profileData.joinDate).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span>{profileData.location}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {/* Tab Navigation */}
+            <div className="flex flex-wrap gap-1 mb-4 sm:mb-6 p-1 bg-muted rounded-lg overflow-x-auto">
+              {tabs.map(tab => (
+                <Button
+                  key={tab.id}
+                  variant={activeTab === tab.id ? "default" : "ghost"}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap"
+                  size="sm"
+                >
+                  <tab.icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                </Button>
+              ))}
+            </div>
+
+            {/* Profile Information Tab */}
+            {activeTab === 'profile' && (
+              <div className="space-y-4 sm:space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base sm:text-lg">Personal Information</CardTitle>
+                    <CardDescription className="text-sm">Your basic profile and contact information</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="fullName" className="text-sm">Full Name</Label>
+                        <Input
+                          id="fullName"
+                          value={profileData.fullName}
+                          onChange={(e) => handleInputChange('fullName', e.target.value)}
+                          disabled={!isEditing}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="employeeId" className="text-sm">Employee ID</Label>
+                        <Input
+                          id="employeeId"
+                          value={profileData.employeeId}
+                          disabled
+                          className="bg-muted text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="email" className="text-sm">Email Address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
+                          disabled={!isEditing}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone" className="text-sm">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          value={profileData.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          disabled={!isEditing}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="role" className="text-sm">Role</Label>
+                        <Select 
+                          value={profileData.role} 
+                          onValueChange={(value) => handleInputChange('role', value)} 
+                          disabled={!isEditing}
+                        >
+                          <SelectTrigger className="text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Fleet Manager">Fleet Manager</SelectItem>
+                            <SelectItem value="Driver">Driver</SelectItem>
+                            <SelectItem value="Supervisor">Supervisor</SelectItem>
+                            <SelectItem value="Admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="department" className="text-sm">Department</Label>
+                        <Input
+                          id="department"
+                          value={profileData.department}
+                          onChange={(e) => handleInputChange('department', e.target.value)}
+                          disabled={!isEditing}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base sm:text-lg">Address & Emergency Contact</CardTitle>
+                    <CardDescription className="text-sm">Additional contact information</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="address" className="text-sm">Address</Label>
+                        <Textarea
+                          id="address"
+                          value={profileData.address}
+                          onChange={(e) => handleInputChange('address', e.target.value)}
+                          disabled={!isEditing}
+                          rows={3}
+                          className="text-sm resize-none"
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="emergencyContact" className="text-sm">Emergency Contact</Label>
+                          <Input
+                            id="emergencyContact"
+                            value={profileData.emergencyContact}
+                            onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
+                            disabled={!isEditing}
+                            className="text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="licenseNumber" className="text-sm">License Number</Label>
+                          <Input
+                            id="licenseNumber"
+                            value={profileData.licenseNumber}
+                            onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
+                            disabled={!isEditing}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base sm:text-lg">Professional Bio</CardTitle>
+                    <CardDescription className="text-sm">Tell us about your experience and expertise</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      value={profileData.bio}
+                      onChange={(e) => handleInputChange('bio', e.target.value)}
+                      disabled={!isEditing}
+                      rows={4}
+                      placeholder="Share your professional background, experience, and expertise..."
+                      className="text-sm resize-none"
+                    />
+                  </CardContent>
+                </Card>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <Briefcase className="w-4 h-4 text-muted-foreground" />
-                  <span>{formData.employee_id || 'No Employee ID'}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>{formData.location || 'No Location Set'}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span>{formData.phone || 'No Phone Number'}</span>
-                </div>
+            )}
+
+            {/* Notifications Tab */}
+            {activeTab === 'notifications' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base sm:text-lg">Notification Preferences</CardTitle>
+                  <CardDescription className="text-sm">Choose how you want to receive notifications</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        <div>
+                          <p className="font-medium text-sm">Email Notifications</p>
+                          <p className="text-xs text-muted-foreground">Receive updates via email</p>
+                        </div>
+                      </div>
+                      <Switch 
+                        checked={profileData.notifications.email} 
+                        onCheckedChange={(checked) => handleInputChange('notifications.email', checked)}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        <div>
+                          <p className="font-medium text-sm">SMS Notifications</p>
+                          <p className="text-xs text-muted-foreground">Receive updates via SMS</p>
+                        </div>
+                      </div>
+                      <Switch 
+                        checked={profileData.notifications.sms} 
+                        onCheckedChange={(checked) => handleInputChange('notifications.sms', checked)}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4" />
+                        <div>
+                          <p className="font-medium text-sm">Push Notifications</p>
+                          <p className="text-xs text-muted-foreground">Receive browser notifications</p>
+                        </div>
+                      </div>
+                      <Switch 
+                        checked={profileData.notifications.push} 
+                        onCheckedChange={(checked) => handleInputChange('notifications.push', checked)}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Security Tab */}
+            {activeTab === 'security' && (
+              <div className="space-y-4 sm:space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base sm:text-lg">Password & Security</CardTitle>
+                    <CardDescription className="text-sm">Manage your account security settings</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button className="w-full sm:w-auto text-sm">
+                      <Lock className="w-4 h-4 mr-2" />
+                      Change Password
+                    </Button>
+                    <Separator />
+                    <div>
+                      <p className="font-medium mb-2 text-sm">Two-Factor Authentication</p>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Add an extra layer of security to your account
+                      </p>
+                      <Button variant="outline" className="text-sm">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Enable 2FA
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
+            )}
 
-          {/* Profile Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Personal Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Personal Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="full_name">Full Name</Label>
-                    <Input
-                      id="full_name"
-                      value={formData.full_name}
-                      onChange={(e) => handleInputChange('full_name', e.target.value)}
-                      disabled={!isEditing}
-                      className="mt-1"
-                    />
+            {/* Activity Log Tab */}
+            {activeTab === 'activity' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
+                  <CardDescription className="text-sm">Your recent system activities and login history</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { action: 'Profile updated', time: '2 hours ago', icon: User },
+                      { action: 'Password changed', time: '1 day ago', icon: Lock },
+                      { action: 'Login from Nairobi', time: '2 days ago', icon: MapPin },
+                      { action: 'Trip created', time: '3 days ago', icon: Activity }
+                    ].map((activity, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                        <activity.icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm">{activity.action}</p>
+                          <p className="text-xs text-muted-foreground">{activity.time}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <Label htmlFor="employee_id">Employee ID</Label>
-                    <Input
-                      id="employee_id"
-                      value={formData.employee_id}
-                      onChange={(e) => handleInputChange('employee_id', e.target.value)}
-                      disabled={!isEditing}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      disabled={!isEditing}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="role">Role</Label>
-                    <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)} disabled={!isEditing}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="driver">Driver</SelectItem>
-                        <SelectItem value="Fleet Manager">Fleet Manager</SelectItem>
-                        <SelectItem value="Supervisor">Supervisor</SelectItem>
-                        <SelectItem value="Admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Work Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Briefcase className="w-5 h-5" />
-                  Work Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="department">Department</Label>
-                    <Input
-                      id="department"
-                      value={formData.department}
-                      onChange={(e) => handleInputChange('department', e.target.value)}
-                      disabled={!isEditing}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                      disabled={!isEditing}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Contact & Emergency Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Contact className="w-5 h-5" />
-                  Contact & Emergency Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    disabled={!isEditing}
-                    className="mt-1"
-                    rows={3}
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="emergency_contact">Emergency Contact</Label>
-                    <Input
-                      id="emergency_contact"
-                      value={formData.emergency_contact}
-                      onChange={(e) => handleInputChange('emergency_contact', e.target.value)}
-                      disabled={!isEditing}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="license_number">License Number</Label>
-                    <Input
-                      id="license_number"
-                      value={formData.license_number}
-                      onChange={(e) => handleInputChange('license_number', e.target.value)}
-                      disabled={!isEditing}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notification Preferences */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Bell className="w-5 h-5" />
-                  Notification Preferences
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive notifications via email</p>
-                  </div>
-                  <Switch
-                    checked={formData.email_notifications}
-                    onCheckedChange={(checked) => handleInputChange('email_notifications', checked)}
-                    disabled={!isEditing}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>SMS Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive notifications via SMS</p>
-                  </div>
-                  <Switch
-                    checked={formData.sms_notifications}
-                    onCheckedChange={(checked) => handleInputChange('sms_notifications', checked)}
-                    disabled={!isEditing}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive push notifications in browser</p>
-                  </div>
-                  <Switch
-                    checked={formData.push_notifications}
-                    onCheckedChange={(checked) => handleInputChange('push_notifications', checked)}
-                    disabled={!isEditing}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
