@@ -1,5 +1,5 @@
 
-import { Truck, Calendar, Package, Settings, FileText, Gauge, Route, Box, MapPin, Clock } from "lucide-react";
+import { Truck, Calendar, Package, Settings, FileText, Gauge, Route, Box, MapPin, Clock, User } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import {
   Sidebar,
@@ -53,6 +53,11 @@ const driverMenuItems = [
     title: "Documents",
     url: "/driver-documents",
     icon: FileText,
+  },
+  {
+    title: "Profile",
+    url: "/driver-profile",
+    icon: User,
   },
 ];
 

@@ -1,24 +1,50 @@
 
-import { ReactNode } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { DriverSidebar } from "@/components/DriverSidebar";
-import { Header } from "@/components/Header";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { DriverSidebar } from "./DriverSidebar";
+import { Button } from "@/components/ui/button";
+import { Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 
 interface DriverLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export const DriverLayout = ({ children }: DriverLayoutProps) => {
+  const { theme, setTheme } = useTheme();
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-slate-50 dark:bg-slate-900">
+      <div className="min-h-screen flex w-full">
         <DriverSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Header />
-          <main className="flex-1 p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 overflow-x-auto">
+        <SidebarInset className="flex-1">
+          <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4 driver-gradient">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold text-white">Driver Portal</h1>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="text-white hover:bg-blue-600/20"
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto">
             {children}
           </main>
-        </div>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );
