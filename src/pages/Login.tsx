@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Mail, Lock, Shield, Users, BarChart3, Package, Eye, EyeOff } from "lucide-react";
+import { Truck, Mail, Lock, Shield, Users, BarChart3, Package, Eye, EyeOff, Zap, Globe, Award } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,72 +45,119 @@ const Login = () => {
   };
 
   const features = [
-    { icon: Truck, title: "Fleet Management", desc: "Track and manage your vehicle fleet" },
-    { icon: Package, title: "Cargo Handling", desc: "Efficient cargo and shipment tracking" },
-    { icon: BarChart3, title: "Analytics", desc: "Real-time insights and reporting" },
-    { icon: Users, title: "Team Management", desc: "Manage drivers and staff" }
+    { icon: Truck, title: "Smart Fleet Management", desc: "AI-powered fleet optimization and real-time tracking" },
+    { icon: Package, title: "Cargo Intelligence", desc: "Advanced cargo tracking with predictive analytics" },
+    { icon: BarChart3, title: "Business Intelligence", desc: "Real-time insights and comprehensive reporting" },
+    { icon: Users, title: "Team Collaboration", desc: "Seamless coordination across all team members" }
+  ];
+
+  const stats = [
+    { number: "500+", label: "Active Vehicles" },
+    { number: "50K+", label: "Deliveries Monthly" },
+    { number: "99.9%", label: "Uptime" },
+    { number: "24/7", label: "Support" }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/30 to-yellow-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex">
-      {/* Left Panel - Features */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex">
+      {/* Left Panel - Enhanced Features */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/90 to-yellow-500/90 dark:from-orange-600/90 dark:to-yellow-600/90" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/95 via-indigo-600/95 to-purple-600/95 dark:from-blue-700/95 dark:via-indigo-700/95 dark:to-purple-700/95" />
+        
+        {/* Animated background elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-32 h-32 bg-white rounded-full animate-pulse"></div>
+          <div className="absolute bottom-20 right-20 w-24 h-24 bg-white rounded-full animate-pulse delay-75"></div>
+          <div className="absolute top-1/2 left-10 w-16 h-16 bg-white rounded-full animate-pulse delay-150"></div>
+        </div>
+
         <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center ring-2 ring-white/30">
                 <Truck className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">Inland Africa</h1>
-                <p className="text-xl opacity-90">Logistics System</p>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+                  Inland Africa
+                </h1>
+                <p className="text-xl opacity-90 font-medium">Logistics System</p>
               </div>
             </div>
-            <p className="text-lg opacity-90 leading-relaxed">
-              Streamline your logistics operations with our comprehensive management platform. 
-              Built for efficiency, designed for growth.
+            <p className="text-lg opacity-90 leading-relaxed mb-6">
+              Transform your logistics operations with our cutting-edge management platform. 
+              Built for efficiency, designed for the future of African logistics.
             </p>
+            
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              {stats.map((stat, index) => (
+                <div key={index} className="text-center">
+                  <p className="text-2xl font-bold text-white">{stat.number}</p>
+                  <p className="text-sm opacity-80">{stat.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-4 mb-8">
             {features.map((feature, index) => (
-              <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-colors">
-                <feature.icon className="w-8 h-8 mb-3 text-white" />
-                <h3 className="font-semibold mb-2">{feature.title}</h3>
-                <p className="text-sm opacity-80">{feature.desc}</p>
+              <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all duration-300 border border-white/20">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <feature.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">{feature.title}</h3>
+                    <p className="text-sm opacity-80">{feature.desc}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-12 flex items-center gap-4">
-            <Shield className="w-5 h-5" />
-            <span className="text-sm opacity-90">Enterprise-grade security & reliability</span>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span className="opacity-90">Enterprise Security</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              <span className="opacity-90">Real-time Updates</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              <span className="opacity-90">Global Reach</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Login Form */}
+      {/* Right Panel - Modern Login Form */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-md">
           {/* Mobile Header */}
           <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Truck className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Inland Africa Logistics</h1>
             <p className="text-gray-600 dark:text-gray-400">Professional logistics management</p>
           </div>
 
-          <Card className="border-2 border-orange-100 dark:border-orange-900/30 shadow-2xl">
-            <CardHeader className="text-center pb-4">
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2">
-                <Lock className="w-6 h-6 text-orange-500" />
-                Sign In
-              </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
-                Access your logistics management dashboard
-              </CardDescription>
+          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm dark:bg-gray-900/80">
+            <CardHeader className="text-center pb-6 space-y-4">
+              <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Lock className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Welcome Back
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400 mt-2">
+                  Sign in to access your logistics dashboard
+                </CardDescription>
+              </div>
             </CardHeader>
             
             <CardContent className="space-y-6">
@@ -119,15 +166,15 @@ const Login = () => {
                   <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 font-medium">
                     Email Address
                   </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     <Input
                       id="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your work email"
-                      className="pl-10 h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-500 rounded-lg"
+                      className="pl-10 h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl transition-all duration-200 bg-gray-50/50 dark:bg-gray-800/50"
                       required
                     />
                   </div>
@@ -137,15 +184,15 @@ const Login = () => {
                   <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium">
                     Password
                   </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
-                      className="pl-10 pr-10 h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-500 rounded-lg"
+                      className="pl-10 pr-10 h-12 border-2 border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl transition-all duration-200 bg-gray-50/50 dark:bg-gray-800/50"
                       required
                     />
                     <button
@@ -161,7 +208,7 @@ const Login = () => {
                 <Button 
                   type="submit" 
                   disabled={isLoading}
-                  className="w-full h-12 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="w-full h-12 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
@@ -169,30 +216,35 @@ const Login = () => {
                       Signing In...
                     </div>
                   ) : (
-                    "Sign In to Dashboard"
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4" />
+                      Sign In to Dashboard
+                    </div>
                   )}
                 </Button>
               </form>
 
               <Separator className="my-6" />
 
-              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950/30 dark:to-yellow-950/30 rounded-xl p-5 border border-orange-200/50 dark:border-orange-800/30">
-                <div className="flex items-center gap-2 mb-3">
-                  <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                    <Shield className="w-3 h-3 mr-1" />
-                    Demo Access
+              {/* Enhanced Demo Section */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-6 border border-blue-200/50 dark:border-blue-800/30">
+                <div className="flex items-center gap-2 mb-4">
+                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-300">
+                    <Award className="w-3 h-3 mr-1" />
+                    New to the platform?
                   </Badge>
                 </div>
-                <div className="space-y-2 text-sm">
-                  <p className="font-semibold text-gray-700 dark:text-gray-300">New to the system?</p>
+                <div className="space-y-3 text-sm">
+                  <p className="font-semibold text-gray-700 dark:text-gray-300">Get started in minutes</p>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Create your account using the registration form to get started with our logistics management platform.
+                    Create your account and join thousands of logistics professionals transforming African transport.
                   </p>
                   <Button 
                     variant="outline" 
-                    className="w-full mt-3 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30"
+                    className="w-full mt-3 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/30 rounded-xl h-11 font-medium"
                     onClick={() => window.location.href = '/auth'}
                   >
+                    <Users className="w-4 h-4 mr-2" />
                     Create New Account
                   </Button>
                 </div>
@@ -200,7 +252,7 @@ const Login = () => {
 
               <div className="text-center pt-4">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  © 2024 Inland Africa Logistics. Enterprise logistics solution.
+                  © 2024 Inland Africa Logistics. Powering African logistics excellence.
                 </p>
               </div>
             </CardContent>

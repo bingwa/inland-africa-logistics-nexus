@@ -22,6 +22,12 @@ import DriverDashboard from "./pages/DriverDashboard";
 import DriverTrips from "./pages/DriverTrips";
 import DriverSchedule from "./pages/DriverSchedule";
 import DriverVehicle from "./pages/DriverVehicle";
+import DriverDeliveries from "./pages/DriverDeliveries";
+import DriverNavigation from "./pages/DriverNavigation";
+import DriverHours from "./pages/DriverHours";
+import DriverDocuments from "./pages/DriverDocuments";
+import DriverNotifications from "./pages/DriverNotifications";
+import DriverProfile from "./pages/DriverProfile";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +71,36 @@ const App = () => (
               <Route path="/driver-vehicle" element={
                 <ProtectedRoute>
                   <DriverVehicle />
+                </ProtectedRoute>
+              } />
+              <Route path="/driver-deliveries" element={
+                <ProtectedRoute>
+                  <DriverDeliveries />
+                </ProtectedRoute>
+              } />
+              <Route path="/driver-navigation" element={
+                <ProtectedRoute>
+                  <DriverNavigation />
+                </ProtectedRoute>
+              } />
+              <Route path="/driver-hours" element={
+                <ProtectedRoute>
+                  <DriverHours />
+                </ProtectedRoute>
+              } />
+              <Route path="/driver-documents" element={
+                <ProtectedRoute>
+                  <DriverDocuments />
+                </ProtectedRoute>
+              } />
+              <Route path="/driver-notifications" element={
+                <ProtectedRoute>
+                  <DriverNotifications />
+                </ProtectedRoute>
+              } />
+              <Route path="/driver-profile" element={
+                <ProtectedRoute>
+                  <DriverProfile />
                 </ProtectedRoute>
               } />
               
