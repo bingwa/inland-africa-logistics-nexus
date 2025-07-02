@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { DriverLayout } from "@/components/DriverLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,15 +9,17 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { User, Truck, MapPin, Calendar, Phone, Mail, Save, Edit, Star, Shield, Award } from "lucide-react";
+import { User, Truck, MapPin, Calendar, Phone, Mail, Save, Edit, Star, Shield, Award, LogOut } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const DriverProfile = () => {
   const { profile, loading, updateProfile } = useProfile();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -128,6 +129,23 @@ const DriverProfile = () => {
     setIsEditing(false);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/auth');
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Sign Out Error",
+        description: "There was an error signing you out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <DriverLayout>
@@ -162,10 +180,16 @@ const DriverProfile = () => {
                 </Button>
               </>
             ) : (
-              <Button onClick={() => setIsEditing(true)} className="bg-blue-600 hover:bg-blue-700">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
+              <>
+                <Button onClick={() => setIsEditing(true)} className="bg-blue-600 hover:bg-blue-700">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+                <Button onClick={handleSignOut} variant="destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              </>
             )}
           </div>
         </div>
