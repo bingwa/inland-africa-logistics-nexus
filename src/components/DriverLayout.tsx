@@ -2,7 +2,7 @@
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DriverSidebar } from "./DriverSidebar";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Bell, User } from "lucide-react";
 import { useTheme } from "next-themes";
 
 interface DriverLayoutProps {
@@ -33,9 +33,30 @@ export const DriverLayout = ({ children }: DriverLayoutProps) => {
                 onClick={toggleTheme}
                 className="text-white hover:bg-blue-600/20"
               >
-                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                {theme === "dark" ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
                 <span className="sr-only">Toggle theme</span>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-blue-600/20"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">Notifications</span>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-blue-600/20"
+              >
+                <User className="h-5 w-5" />
+                <span className="sr-only">Profile</span>
               </Button>
             </div>
           </header>
