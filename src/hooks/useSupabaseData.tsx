@@ -58,7 +58,9 @@ export const useTrips = () => {
   return useQuery<Trip[], Error>({
     queryKey: ["trips"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("trips").select("*");
+      const { data, error } = await supabase
+        .from("trips")
+        .select("*, trucks(truck_number, make, model), drivers(full_name)");
       if (error) throw error;
       return data;
     },
@@ -71,6 +73,21 @@ export const useCreateTrip = () => {
       const { data, error } = await supabase
         .from("trips")
         .insert(newTrip)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+export const useUpdateTripStatus = () => {
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data, error } = await supabase
+        .from("trips")
+        .update({ status })
+        .eq("id", id)
         .select()
         .single();
       if (error) throw error;
@@ -110,7 +127,7 @@ export const useMaintenance = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("maintenance")
-        .select("*, trucks(*)");
+        .select("*, trucks(truck_number, make, model)");
       if (error) throw error;
       return data;
     },

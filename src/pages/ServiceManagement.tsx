@@ -3,12 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FilterExportBar } from "@/components/FilterExportBar";
-import { Calendar, Settings, Truck, Loader2 } from "lucide-react";
+import { Calendar, Settings, Truck, Loader2, Clock, CheckCircle, DollarSign } from "lucide-react";
 import { useState } from "react";
 import { useMaintenance } from "@/hooks/useSupabaseData";
 import { AddMaintenanceRecord } from "@/components/forms/AddMaintenanceRecord";
 import { MaintenanceDetailsModal } from "@/components/MaintenanceDetailsModal";
-import { ScheduleServiceModal } from "@/components/modals/ScheduleServiceModal";
+import { ScheduleServiceModal } from "@/components/ScheduleServiceModal";
 
 const ServiceManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -264,9 +264,3 @@ const ServiceManagement = () => {
 };
 
 export default ServiceManagement;
-
-import {
-  Clock,
-  CheckCircle,
-  DollarSign,
-} from "lucide-react";
