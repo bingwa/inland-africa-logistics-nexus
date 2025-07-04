@@ -4,10 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Truck = Database["public"]["Tables"]["trucks"]["Row"];
+type TruckInsert = Database["public"]["Tables"]["trucks"]["Insert"];
 type Trip = Database["public"]["Tables"]["trips"]["Row"];
+type TripInsert = Database["public"]["Tables"]["trips"]["Insert"];
 type Driver = Database["public"]["Tables"]["drivers"]["Row"];
+type DriverInsert = Database["public"]["Tables"]["drivers"]["Insert"];
 type Maintenance = Database["public"]["Tables"]["maintenance"]["Row"];
+type MaintenanceInsert = Database["public"]["Tables"]["maintenance"]["Insert"];
 type FuelRecord = Database["public"]["Tables"]["fuel_records"]["Row"];
+type FuelRecordInsert = Database["public"]["Tables"]["fuel_records"]["Insert"];
 
 export const useTrucks = () => {
   return useQuery<Truck[], Error>({
@@ -22,7 +27,7 @@ export const useTrucks = () => {
 
 export const useCreateTruck = () => {
   return useMutation({
-    mutationFn: async (newTruck: Partial<Truck>) => {
+    mutationFn: async (newTruck: TruckInsert) => {
       const { data, error } = await supabase
         .from("trucks")
         .insert(newTruck)
@@ -62,7 +67,7 @@ export const useTrips = () => {
 
 export const useCreateTrip = () => {
   return useMutation({
-    mutationFn: async (newTrip: Partial<Trip>) => {
+    mutationFn: async (newTrip: TripInsert) => {
       const { data, error } = await supabase
         .from("trips")
         .insert(newTrip)
@@ -87,7 +92,7 @@ export const useDrivers = () => {
 
 export const useCreateDriver = () => {
   return useMutation({
-    mutationFn: async (newDriver: Partial<Driver>) => {
+    mutationFn: async (newDriver: DriverInsert) => {
       const { data, error } = await supabase
         .from("drivers")
         .insert(newDriver)
@@ -114,7 +119,7 @@ export const useMaintenance = () => {
 
 export const useCreateMaintenance = () => {
   return useMutation({
-    mutationFn: async (newMaintenance: Partial<Maintenance>) => {
+    mutationFn: async (newMaintenance: MaintenanceInsert) => {
       const { data, error } = await supabase
         .from("maintenance")
         .insert(newMaintenance)
@@ -139,7 +144,7 @@ export const useFuelRecords = () => {
 
 export const useCreateFuelRecord = () => {
   return useMutation({
-    mutationFn: async (newFuelRecord: Partial<FuelRecord>) => {
+    mutationFn: async (newFuelRecord: FuelRecordInsert) => {
       const { data, error } = await supabase
         .from("fuel_records")
         .insert(newFuelRecord)
