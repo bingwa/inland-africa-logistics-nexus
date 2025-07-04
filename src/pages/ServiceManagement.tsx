@@ -1,3 +1,4 @@
+
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { FilterExportBar } from "@/components/FilterExportBar";
 import { Calendar, Settings, Truck, Loader2, Clock, CheckCircle, DollarSign } from "lucide-react";
 import { useState } from "react";
-import { useMaintenance } from "@/hooks/useSupabaseData";
+import { useMaintenance, useCreateMaintenance } from "@/hooks/useSupabaseData";
 import { AddMaintenanceRecord } from "@/components/forms/AddMaintenanceRecord";
 import { MaintenanceDetailsModal } from "@/components/MaintenanceDetailsModal";
 import { ScheduleServiceModal } from "@/components/ScheduleServiceModal";
+import { useToast } from "@/hooks/use-toast";
 
 const ServiceManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,6 +19,8 @@ const ServiceManagement = () => {
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const { data: maintenance, isLoading, error } = useMaintenance();
+  const createMaintenance = useCreateMaintenance();
+  const { toast } = useToast();
 
   if (isLoading) {
     return (
@@ -51,7 +55,7 @@ const ServiceManagement = () => {
   const filteredRecords = maintenance?.filter(record => {
     const matchesSearch = record.maintenance_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.trucks?.truck_number.toLowerCase().includes(searchTerm.toLowerCase());
+                         (record.trucks?.truck_number || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   }) || [];
 
@@ -66,6 +70,35 @@ const ServiceManagement = () => {
 
   const handleExport = (format: string) => {
     console.log(`Exporting service records in ${format} format`);
+  };
+
+  const handleScheduleService = async (serviceData: any) => {
+    try {
+      const maintenanceData = {
+        truck_id: serviceData.truckId,
+        maintenance_type: serviceData.maintenanceType,
+        description: serviceData.description,
+        service_date: new Date(serviceData.serviceDate).toISOString().split('T')[0],
+        cost: serviceData.cost,
+        technician: serviceData.technician || null,
+        service_provider: serviceData.serviceProvider || null,
+        status: 'pending'
+      };
+
+      await createMaintenance.mutateAsync(maintenanceData);
+      
+      toast({
+        title: "Service Scheduled",
+        description: "Maintenance service has been successfully scheduled.",
+      });
+    } catch (error) {
+      console.error('Failed to schedule service:', error);
+      toast({
+        title: "Error",
+        description: "Failed to schedule service. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -256,6 +289,7 @@ const ServiceManagement = () => {
           <ScheduleServiceModal
             isOpen={showScheduleModal}
             onClose={() => setShowScheduleModal(false)}
+            onSchedule={handleScheduleService}
           />
         )}
       </div>

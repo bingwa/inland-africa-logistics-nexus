@@ -55,12 +55,16 @@ export const useUpdateTruckStatus = () => {
 };
 
 export const useTrips = () => {
-  return useQuery<Trip[], Error>({
+  return useQuery({
     queryKey: ["trips"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trips")
-        .select("*, trucks(truck_number, make, model), drivers(full_name)");
+        .select(`
+          *,
+          trucks(truck_number, make, model),
+          drivers(full_name)
+        `);
       if (error) throw error;
       return data;
     },
@@ -122,12 +126,15 @@ export const useCreateDriver = () => {
 };
 
 export const useMaintenance = () => {
-  return useQuery<Maintenance[], Error>({
+  return useQuery({
     queryKey: ["maintenance"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("maintenance")
-        .select("*, trucks(truck_number, make, model)");
+        .select(`
+          *,
+          trucks(truck_number, make, model)
+        `);
       if (error) throw error;
       return data;
     },
