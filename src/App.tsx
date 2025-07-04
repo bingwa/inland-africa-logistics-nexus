@@ -12,8 +12,6 @@ import Dashboard from "./pages/Dashboard";
 import FleetManagement from "./pages/FleetManagement";
 import ServiceManagement from "./pages/ServiceManagement";
 import TripManagement from "./pages/TripManagement";
-import InventoryManagement from "./pages/InventoryManagement";
-import CargoManagement from "./pages/CargoManagement";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
@@ -54,16 +52,6 @@ const App = () => (
               <Route path="/trips" element={
                 <ProtectedRoute>
                   <TripManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="/inventory" element={
-                <ProtectedRoute>
-                  <InventoryManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="/cargo" element={
-                <ProtectedRoute>
-                  <CargoManagement />
                 </ProtectedRoute>
               } />
               <Route path="/reports" element={

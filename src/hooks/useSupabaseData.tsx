@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -24,7 +25,7 @@ export const useCreateTruck = () => {
     mutationFn: async (newTruck: Partial<Truck>) => {
       const { data, error } = await supabase
         .from("trucks")
-        .insert([newTruck])
+        .insert(newTruck)
         .select()
         .single();
       if (error) throw error;
@@ -64,7 +65,7 @@ export const useCreateTrip = () => {
     mutationFn: async (newTrip: Partial<Trip>) => {
       const { data, error } = await supabase
         .from("trips")
-        .insert([newTrip])
+        .insert(newTrip)
         .select()
         .single();
       if (error) throw error;
@@ -89,7 +90,7 @@ export const useCreateDriver = () => {
     mutationFn: async (newDriver: Partial<Driver>) => {
       const { data, error } = await supabase
         .from("drivers")
-        .insert([newDriver])
+        .insert(newDriver)
         .select()
         .single();
       if (error) throw error;
@@ -116,7 +117,7 @@ export const useCreateMaintenance = () => {
     mutationFn: async (newMaintenance: Partial<Maintenance>) => {
       const { data, error } = await supabase
         .from("maintenance")
-        .insert([newMaintenance])
+        .insert(newMaintenance)
         .select()
         .single();
       if (error) throw error;
@@ -141,7 +142,7 @@ export const useCreateFuelRecord = () => {
     mutationFn: async (newFuelRecord: Partial<FuelRecord>) => {
       const { data, error } = await supabase
         .from("fuel_records")
-        .insert([newFuelRecord])
+        .insert(newFuelRecord)
         .select()
         .single();
       if (error) throw error;
