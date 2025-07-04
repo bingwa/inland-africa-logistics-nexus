@@ -9,72 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      cargo: {
-        Row: {
-          cargo_number: string
-          client_contact: string | null
-          client_name: string
-          created_at: string | null
-          delivery_address: string
-          description: string
-          id: string
-          pickup_address: string
-          special_instructions: string | null
-          status: string | null
-          trip_id: string | null
-          updated_at: string | null
-          value: number | null
-          weight_kg: number
-        }
-        Insert: {
-          cargo_number: string
-          client_contact?: string | null
-          client_name: string
-          created_at?: string | null
-          delivery_address: string
-          description: string
-          id?: string
-          pickup_address: string
-          special_instructions?: string | null
-          status?: string | null
-          trip_id?: string | null
-          updated_at?: string | null
-          value?: number | null
-          weight_kg: number
-        }
-        Update: {
-          cargo_number?: string
-          client_contact?: string | null
-          client_name?: string
-          created_at?: string | null
-          delivery_address?: string
-          description?: string
-          id?: string
-          pickup_address?: string
-          special_instructions?: string | null
-          status?: string | null
-          trip_id?: string | null
-          updated_at?: string | null
-          value?: number | null
-          weight_kg?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cargo_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "driver_trip_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cargo_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       driver_trip_assignments: {
         Row: {
           assigned_at: string | null
@@ -265,7 +199,6 @@ export type Database = {
           maintenance_type: string
           mileage_at_service: number | null
           next_service_date: string | null
-          parts_used: Json | null
           service_date: string
           service_provider: string | null
           status: string | null
@@ -282,7 +215,6 @@ export type Database = {
           maintenance_type: string
           mileage_at_service?: number | null
           next_service_date?: string | null
-          parts_used?: Json | null
           service_date: string
           service_provider?: string | null
           status?: string | null
@@ -299,7 +231,6 @@ export type Database = {
           maintenance_type?: string
           mileage_at_service?: number | null
           next_service_date?: string | null
-          parts_used?: Json | null
           service_date?: string
           service_provider?: string | null
           status?: string | null
@@ -313,51 +244,6 @@ export type Database = {
             columns: ["truck_id"]
             isOneToOne: false
             referencedRelation: "trucks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      parts_usage: {
-        Row: {
-          cost_per_unit: number
-          created_at: string | null
-          id: string
-          maintenance_id: string | null
-          part_id: string | null
-          quantity_used: number
-          total_cost: number
-        }
-        Insert: {
-          cost_per_unit: number
-          created_at?: string | null
-          id?: string
-          maintenance_id?: string | null
-          part_id?: string | null
-          quantity_used: number
-          total_cost: number
-        }
-        Update: {
-          cost_per_unit?: number
-          created_at?: string | null
-          id?: string
-          maintenance_id?: string | null
-          part_id?: string | null
-          quantity_used?: number
-          total_cost?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "parts_usage_maintenance_id_fkey"
-            columns: ["maintenance_id"]
-            isOneToOne: false
-            referencedRelation: "maintenance"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parts_usage_part_id_fkey"
-            columns: ["part_id"]
-            isOneToOne: false
-            referencedRelation: "spare_parts"
             referencedColumns: ["id"]
           },
         ]
@@ -415,57 +301,6 @@ export type Database = {
           push_notifications?: boolean | null
           role?: string | null
           sms_notifications?: boolean | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      spare_parts: {
-        Row: {
-          category: string
-          created_at: string | null
-          description: string | null
-          id: string
-          lead_time_days: number | null
-          location: string | null
-          minimum_stock_level: number | null
-          part_name: string
-          part_number: string
-          quantity_in_stock: number
-          supplier: string | null
-          supplier_rating: number | null
-          unit_price: number
-          updated_at: string | null
-        }
-        Insert: {
-          category: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          lead_time_days?: number | null
-          location?: string | null
-          minimum_stock_level?: number | null
-          part_name: string
-          part_number: string
-          quantity_in_stock?: number
-          supplier?: string | null
-          supplier_rating?: number | null
-          unit_price: number
-          updated_at?: string | null
-        }
-        Update: {
-          category?: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          lead_time_days?: number | null
-          location?: string | null
-          minimum_stock_level?: number | null
-          part_name?: string
-          part_number?: string
-          quantity_in_stock?: number
-          supplier?: string | null
-          supplier_rating?: number | null
-          unit_price?: number
           updated_at?: string | null
         }
         Relationships: []
