@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Calendar, Gauge, X, Settings, MapPin } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Truck, Calendar, Gauge, X, Settings, MapPin, FileText, AlertTriangle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface TruckDetailsModalProps {
@@ -27,6 +28,19 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
       case "maintenance": return "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/20 dark:text-orange-400";
       default: return "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/20 dark:text-gray-400";
     }
+  };
+
+  const getCertificateStatus = (expiryDate: string) => {
+    if (!expiryDate) return { status: 'missing', color: 'bg-red-100 text-red-800', days: 0 };
+    
+    const expiry = new Date(expiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return { status: 'expired', color: 'bg-red-100 text-red-800', days: diffDays };
+    if (diffDays <= 30) return { status: 'expiring', color: 'bg-yellow-100 text-yellow-800', days: diffDays };
+    return { status: 'valid', color: 'bg-green-100 text-green-800', days: diffDays };
   };
 
   const handleStatusUpdate = async (newStatus: string) => {
@@ -66,12 +80,13 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
             .field { margin: 10px 0; }
             .label { font-weight: bold; color: #555; }
             .value { margin-left: 10px; }
+            .cert-status { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
             @media print { .no-print { display: none; } }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>TransLogistics Kenya</h1>
+            <h1>Approved Logistics Limited</h1>
             <h2>Truck Information Report</h2>
             <p>Truck Number: ${truck.truck_number}</p>
             <p>Generated on: ${new Date().toLocaleString()}</p>
@@ -95,6 +110,13 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
             </div>
           </div>
 
+          <div class="section">
+            <h3>Licensing & Certification Status</h3>
+            <div class="field"><span class="label">NTSA Inspection:</span><span class="value cert-status">${truck.ntsa_expiry ? new Date(truck.ntsa_expiry).toLocaleDateString() : 'Not Available'}</span></div>
+            <div class="field"><span class="label">Insurance:</span><span class="value cert-status">${truck.insurance_expiry ? new Date(truck.insurance_expiry).toLocaleDateString() : 'Not Available'}</span></div>
+            <div class="field"><span class="label">TGL License:</span><span class="value cert-status">${truck.tgl_expiry ? new Date(truck.tgl_expiry).toLocaleDateString() : 'Not Available'}</span></div>
+          </div>
+
           ${truck.next_service_due ? `
           <div class="section">
             <h3>Maintenance Information</h3>
@@ -112,9 +134,14 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
     printWindow.document.close();
   };
 
+  // Certificate status calculations
+  const ntsaStatus = getCertificateStatus(truck.ntsa_expiry);
+  const insuranceStatus = getCertificateStatus(truck.insurance_expiry);
+  const tglStatus = getCertificateStatus(truck.tgl_expiry);
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -122,7 +149,7 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
                 <Truck className="w-5 h-5" />
                 Truck Details - {truck.truck_number}
               </CardTitle>
-              <CardDescription>Complete vehicle information</CardDescription>
+              <CardDescription>Complete vehicle information and compliance status</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={onClose}>
               <X className="w-4 h-4" />
@@ -140,6 +167,7 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
             </Button>
           </div>
 
+          {/* Vehicle Specifications */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Vehicle Specifications</CardTitle>
@@ -181,6 +209,71 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
             </CardContent>
           </Card>
 
+          {/* Licensing & Certification Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Licensing & Certification Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {ntsaStatus.status === 'valid' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <AlertTriangle className="w-4 h-4 text-red-600" />}
+                    <p className="text-sm font-medium">NTSA Inspection</p>
+                  </div>
+                  <Badge className={ntsaStatus.color + " text-xs"}>
+                    {truck.ntsa_expiry ? new Date(truck.ntsa_expiry).toLocaleDateString() : 'Not Available'}
+                  </Badge>
+                  {ntsaStatus.status !== 'missing' && (
+                    <p className="text-xs text-muted-foreground">
+                      {ntsaStatus.status === 'expired' ? `Expired ${Math.abs(ntsaStatus.days)} days ago` :
+                       ntsaStatus.status === 'expiring' ? `Expires in ${ntsaStatus.days} days` :
+                       `Valid for ${ntsaStatus.days} days`}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {insuranceStatus.status === 'valid' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <AlertTriangle className="w-4 h-4 text-red-600" />}
+                    <p className="text-sm font-medium">Insurance Certificate</p>
+                  </div>
+                  <Badge className={insuranceStatus.color + " text-xs"}>
+                    {truck.insurance_expiry ? new Date(truck.insurance_expiry).toLocaleDateString() : 'Not Available'}
+                  </Badge>
+                  {insuranceStatus.status !== 'missing' && (
+                    <p className="text-xs text-muted-foreground">
+                      {insuranceStatus.status === 'expired' ? `Expired ${Math.abs(insuranceStatus.days)} days ago` :
+                       insuranceStatus.status === 'expiring' ? `Expires in ${insuranceStatus.days} days` :
+                       `Valid for ${insuranceStatus.days} days`}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {tglStatus.status === 'valid' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <AlertTriangle className="w-4 h-4 text-red-600" />}
+                    <p className="text-sm font-medium">TGL License</p>
+                  </div>
+                  <Badge className={tglStatus.color + " text-xs"}>
+                    {truck.tgl_expiry ? new Date(truck.tgl_expiry).toLocaleDateString() : 'Not Available'}
+                  </Badge>
+                  {tglStatus.status !== 'missing' && (
+                    <p className="text-xs text-muted-foreground">
+                      {tglStatus.status === 'expired' ? `Expired ${Math.abs(tglStatus.days)} days ago` :
+                       tglStatus.status === 'expiring' ? `Expires in ${tglStatus.days} days` :
+                       `Valid for ${tglStatus.days} days`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Maintenance Schedule */}
           {truck.next_service_due && (
             <Card>
               <CardHeader>
@@ -209,6 +302,7 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
             </Card>
           )}
 
+          {/* Location Information */}
           {(truck.last_gps_lat && truck.last_gps_lng) && (
             <Card>
               <CardHeader>

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Calendar, User, Truck, DollarSign, X, CheckCircle, Clock } from "lucide-react";
+import { Settings, Calendar, User, Truck, DollarSign, X, CheckCircle, Clock, FileText, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ServiceDetailsModalProps {
@@ -54,6 +54,9 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    const partsUsed = service.parts_used ? JSON.parse(service.parts_used) : [];
+    const partsTotal = partsUsed.reduce((sum: number, part: any) => sum + (part.quantity * part.price), 0);
+
     const detailsHtml = `
       <!DOCTYPE html>
       <html>
@@ -67,12 +70,16 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
             .field { margin: 10px 0; }
             .label { font-weight: bold; color: #555; }
             .value { margin-left: 10px; }
+            .parts-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+            .parts-table th, .parts-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .parts-table th { background-color: #f5f5f5; }
+            .cost-breakdown { background-color: #f9f9f9; padding: 15px; margin: 10px 0; }
             @media print { .no-print { display: none; } }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>TransLogistics Kenya</h1>
+            <h1>Approved Logistics Limited</h1>
             <h2>Service Record Report</h2>
             <p>Service ID: ${service.id}</p>
             <p>Generated on: ${new Date().toLocaleString()}</p>
@@ -91,17 +98,55 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                 <div class="field"><span class="label">Service Type:</span><span class="value">${service.maintenance_type}</span></div>
                 <div class="field"><span class="label">Status:</span><span class="value">${service.status}</span></div>
                 <div class="field"><span class="label">Technician:</span><span class="value">${service.technician || 'Not assigned'}</span></div>
+                <div class="field"><span class="label">Service Provider:</span><span class="value">${service.service_provider || 'In-house'}</span></div>
               </div>
               <div>
                 <div class="field"><span class="label">Service Date:</span><span class="value">${new Date(service.service_date).toLocaleDateString()}</span></div>
-                <div class="field"><span class="label">Cost:</span><span class="value">KSh ${service.cost?.toLocaleString() || '0'}</span></div>
                 <div class="field"><span class="label">Mileage:</span><span class="value">${service.mileage_at_service || 'N/A'} km</span></div>
+                <div class="field"><span class="label">Downtime:</span><span class="value">${service.downtime_hours || 0} hours</span></div>
+              </div>
+            </div>
+          </div>
+
+          ${partsUsed.length > 0 ? `
+          <div class="section">
+            <h3>Parts & Materials Used</h3>
+            <table class="parts-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Quantity</th>
+                  <th>Unit Price (KSh)</th>
+                  <th>Total (KSh)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${partsUsed.map((part: any) => `
+                  <tr>
+                    <td>${part.name}</td>
+                    <td>${part.quantity}</td>
+                    <td>${part.price.toLocaleString()}</td>
+                    <td>${(part.quantity * part.price).toLocaleString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          ` : ''}
+
+          <div class="section">
+            <h3>Cost Breakdown</h3>
+            <div class="cost-breakdown">
+              <div class="field"><span class="label">Parts & Materials:</span><span class="value">KSh ${partsTotal.toLocaleString()}</span></div>
+              <div class="field"><span class="label">Labor Cost:</span><span class="value">KSh ${((service.cost || 0) - partsTotal).toLocaleString()}</span></div>
+              <div class="field" style="border-top: 1px solid #ccc; padding-top: 10px; font-weight: bold;">
+                <span class="label">Total Service Cost:</span><span class="value">KSh ${(service.cost || 0).toLocaleString()}</span>
               </div>
             </div>
           </div>
 
           <div class="section">
-            <h3>Description</h3>
+            <h3>Description & Notes</h3>
             <p>${service.description}</p>
           </div>
 
@@ -114,9 +159,13 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
     printWindow.document.close();
   };
 
+  const partsUsed = service.parts_used ? JSON.parse(service.parts_used) : [];
+  const partsTotal = partsUsed.reduce((sum: number, part: any) => sum + (part.quantity * part.price), 0);
+  const laborCost = (service.cost || 0) - partsTotal;
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -124,7 +173,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                 <Settings className="w-5 h-5" />
                 Service Details - {service.trucks?.truck_number}
               </CardTitle>
-              <CardDescription>Maintenance record information</CardDescription>
+              <CardDescription>Complete maintenance record and cost breakdown</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={onClose}>
               <X className="w-4 h-4" />
@@ -138,10 +187,12 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
               {service.status.toUpperCase()}
             </Badge>
             <Button variant="outline" size="sm" onClick={handlePrintDetails}>
-              Print Details
+              <FileText className="w-4 h-4 mr-2" />
+              Print Report
             </Button>
           </div>
 
+          {/* Vehicle Information */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Vehicle Information</CardTitle>
@@ -167,6 +218,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
             </CardContent>
           </Card>
 
+          {/* Service Information */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Service Information</CardTitle>
@@ -185,6 +237,10 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                       <p className="font-semibold">{service.technician || 'Not assigned'}</p>
                     </div>
                   </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Service Provider</p>
+                    <p className="font-semibold">{service.service_provider || 'In-house'}</p>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -194,35 +250,89 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                       <p className="font-semibold">{new Date(service.service_date).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-green-600" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Cost</p>
-                      <p className="font-semibold">KSh {service.cost?.toLocaleString() || '0'}</p>
-                    </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Mileage at Service</p>
+                    <p className="font-semibold">{service.mileage_at_service?.toLocaleString() || 'N/A'} km</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Downtime</p>
+                    <p className="font-semibold">{service.downtime_hours || 0} hours</p>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* Parts & Materials Used */}
+          {partsUsed.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Parts & Materials Used
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Item</th>
+                        <th className="text-left p-2">Quantity</th>
+                        <th className="text-left p-2">Unit Price (KSh)</th>
+                        <th className="text-left p-2">Total (KSh)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {partsUsed.map((part: any, index: number) => (
+                        <tr key={index} className="border-b">
+                          <td className="p-2">{part.name}</td>
+                          <td className="p-2">{part.quantity}</td>
+                          <td className="p-2">{part.price.toLocaleString()}</td>
+                          <td className="p-2">{(part.quantity * part.price).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Cost Breakdown */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Additional Details</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Cost Breakdown
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Description</p>
-                  <p className="font-medium">{service.description}</p>
+              <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
+                <div className="flex justify-between">
+                  <span>Parts & Materials:</span>
+                  <span className="font-semibold">KSh {partsTotal.toLocaleString()}</span>
                 </div>
-                {service.mileage_at_service && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Mileage at Service</p>
-                    <p className="font-medium">{service.mileage_at_service.toLocaleString()} km</p>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span>Labor Cost:</span>
+                  <span className="font-semibold">KSh {laborCost.toLocaleString()}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total Service Cost:</span>
+                  <span>KSh {(service.cost || 0).toLocaleString()}</span>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Description & Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Description & Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">{service.description}</p>
             </CardContent>
           </Card>
 
