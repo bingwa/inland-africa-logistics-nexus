@@ -563,17 +563,21 @@ export type Database = {
           created_at: string | null
           fuel_type: string
           id: string
+          insurance_expiry: string | null
           last_gps_lat: number | null
           last_gps_lng: number | null
           last_service_date: string | null
+          last_service_mileage: number | null
           license_plate: string
           make: string
           mileage: number | null
           model: string
           next_service_due: string | null
+          ntsa_expiry: string | null
           purchase_date: string | null
           status: string | null
           telematics_id: string | null
+          tgl_expiry: string | null
           truck_number: string
           updated_at: string | null
           vin: string | null
@@ -584,17 +588,21 @@ export type Database = {
           created_at?: string | null
           fuel_type: string
           id?: string
+          insurance_expiry?: string | null
           last_gps_lat?: number | null
           last_gps_lng?: number | null
           last_service_date?: string | null
+          last_service_mileage?: number | null
           license_plate: string
           make: string
           mileage?: number | null
           model: string
           next_service_due?: string | null
+          ntsa_expiry?: string | null
           purchase_date?: string | null
           status?: string | null
           telematics_id?: string | null
+          tgl_expiry?: string | null
           truck_number: string
           updated_at?: string | null
           vin?: string | null
@@ -605,17 +613,21 @@ export type Database = {
           created_at?: string | null
           fuel_type?: string
           id?: string
+          insurance_expiry?: string | null
           last_gps_lat?: number | null
           last_gps_lng?: number | null
           last_service_date?: string | null
+          last_service_mileage?: number | null
           license_plate?: string
           make?: string
           mileage?: number | null
           model?: string
           next_service_due?: string | null
+          ntsa_expiry?: string | null
           purchase_date?: string | null
           status?: string | null
           telematics_id?: string | null
+          tgl_expiry?: string | null
           truck_number?: string
           updated_at?: string | null
           vin?: string | null

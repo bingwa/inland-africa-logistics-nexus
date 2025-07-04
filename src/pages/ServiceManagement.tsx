@@ -225,8 +225,8 @@ const ServiceManagement = () => {
 
             <div className="space-y-4 mt-6">
               {filteredRecords.map((record) => {
-                const partsUsed = record.parts_used ? JSON.parse(record.parts_used) : [];
-                const partsCount = partsUsed.length;
+                const partsUsed = record.parts_used ? (typeof record.parts_used === 'string' ? JSON.parse(record.parts_used) : record.parts_used) : [];
+                const partsCount = Array.isArray(partsUsed) ? partsUsed.length : 0;
                 
                 return (
                   <div key={record.id} className="border-2 border-yellow-300/50 dark:border-yellow-600/50 rounded-lg p-3 sm:p-4 lg:p-6 hover:shadow-md transition-shadow">

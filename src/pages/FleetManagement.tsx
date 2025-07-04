@@ -47,7 +47,7 @@ const FleetManagement = () => {
     }
   };
 
-  const getCertificateStatus = (expiryDate: string) => {
+  const getCertificateStatus = (expiryDate: string | null) => {
     if (!expiryDate) return 'missing';
     
     const expiry = new Date(expiryDate);
