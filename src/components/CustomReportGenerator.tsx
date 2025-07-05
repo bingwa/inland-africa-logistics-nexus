@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +34,7 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
 
   const reportTypeOptions = [
     { value: 'fleet', label: 'Fleet Performance Report' },
+    { value: 'truck_analytics', label: 'Truck Analytics Report' },
     { value: 'trips', label: 'Trip Analysis Report' },
     { value: 'drivers', label: 'Driver Performance Report' },
     { value: 'maintenance', label: 'Maintenance Report' },
@@ -48,6 +48,8 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
     switch (type) {
       case 'fleet':
         return ['truck_number', 'make', 'model', 'status', 'mileage', 'last_service_date', 'next_service_due'];
+      case 'truck_analytics':
+        return ['truck_number', 'monthly_trips', 'completed_trips', 'total_mileage', 'fuel_cost', 'top_routes', 'efficiency_rating'];
       case 'trips':
         return ['trip_number', 'origin', 'destination', 'status', 'planned_departure', 'actual_departure', 'distance_km', 'cargo_value_usd'];
       case 'drivers':
@@ -69,6 +71,37 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
     }
   };
 
+  const getTruckAnalytics = (truckId: string, fromDate?: Date, toDate?: Date) => {
+    const startDate = fromDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const endDate = toDate || new Date();
+
+    const truckTrips = trips?.filter(trip => 
+      trip.truck_id === truckId && 
+      new Date(trip.created_at) >= startDate &&
+      new Date(trip.created_at) <= endDate
+    ) || [];
+
+    const truckFuel = fuelRecords?.filter(fuel => 
+      fuel.truck_id === truckId &&
+      new Date(fuel.fuel_date) >= startDate &&
+      new Date(fuel.fuel_date) <= endDate
+    ) || [];
+
+    const totalMileage = truckTrips.reduce((sum, trip) => sum + (trip.distance_km || 0), 0);
+    const totalFuelCost = truckFuel.reduce((sum, fuel) => sum + (fuel.total_cost || 0), 0);
+    const routes = [...new Set(truckTrips.map(trip => `${trip.origin} → ${trip.destination}`))];
+    const completedTrips = truckTrips.filter(trip => trip.status === 'completed').length;
+
+    return {
+      tripsCount: truckTrips.length,
+      completedTrips,
+      totalMileage: Math.round(totalMileage),
+      totalFuelCost: Math.round(totalFuelCost * 130),
+      topRoutes: routes.slice(0, 5).join('; '),
+      efficiencyRating: completedTrips > 0 ? Math.round((completedTrips / truckTrips.length) * 100) : 0
+    };
+  };
+
   const generateReport = async () => {
     if (!reportType || !reportName) {
       toast({
@@ -81,10 +114,8 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
 
     setIsGenerating(true);
     try {
-      // Simulate report generation
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Create printable report
       const reportData = getReportData();
       generatePrintableReport(reportData);
 
@@ -107,9 +138,26 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
 
   const getReportData = () => {
     let data: any[] = [];
+    
     switch (reportType) {
       case 'fleet':
         data = trucks || [];
+        break;
+      case 'truck_analytics':
+        data = trucks?.map(truck => {
+          const analytics = getTruckAnalytics(truck.id, dateRange.from, dateRange.to);
+          return {
+            truck_number: truck.truck_number,
+            make: truck.make,
+            model: truck.model,
+            monthly_trips: analytics.tripsCount,
+            completed_trips: analytics.completedTrips,
+            total_mileage: analytics.totalMileage,
+            fuel_cost: analytics.totalFuelCost,
+            top_routes: analytics.topRoutes,
+            efficiency_rating: `${analytics.efficiencyRating}%`
+          };
+        }) || [];
         break;
       case 'trips':
         data = trips || [];
@@ -127,8 +175,8 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
         data = [];
     }
 
-    // Apply date filtering if specified
-    if (dateRange.from && dateRange.to) {
+    // Apply date filtering for non-analytics reports
+    if (reportType !== 'truck_analytics' && dateRange.from && dateRange.to) {
       data = data.filter(item => {
         const itemDate = new Date(item.created_at || item.service_date || item.fuel_date);
         return itemDate >= dateRange.from! && itemDate <= dateRange.to!;
@@ -161,7 +209,7 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
             .header { text-align: center; margin-bottom: 30px; }
             .company-info { margin-bottom: 20px; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
             th { background-color: #f5f5f5; font-weight: bold; }
             .summary { margin: 20px 0; padding: 15px; background-color: #f9f9f9; }
             .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
@@ -172,7 +220,7 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
         </head>
         <body>
           <div class="header">
-            <h1>TransLogistics Kenya</h1>
+            <h1>Approved Logistics Limited</h1>
             <h2>${reportName}</h2>
             <p>Generated on: ${new Date().toLocaleString()}</p>
           </div>
@@ -189,6 +237,9 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
             <p>Total Records: ${data.length}</p>
             ${reportType === 'trips' ? `<p>Total Distance: ${data.reduce((sum, item) => sum + (item.distance_km || 0), 0).toLocaleString()} km</p>` : ''}
             ${reportType === 'trips' ? `<p>Total Value: KSh ${data.reduce((sum, item) => sum + (item.cargo_value_usd * 130 || 0), 0).toLocaleString()}</p>` : ''}
+            ${reportType === 'truck_analytics' ? `<p>Total Monthly Trips: ${data.reduce((sum, item) => sum + (item.monthly_trips || 0), 0)}</p>` : ''}
+            ${reportType === 'truck_analytics' ? `<p>Total Monthly Mileage: ${data.reduce((sum, item) => sum + (item.total_mileage || 0), 0).toLocaleString()} km</p>` : ''}
+            ${reportType === 'truck_analytics' ? `<p>Total Monthly Fuel Cost: KSh ${data.reduce((sum, item) => sum + (item.fuel_cost || 0), 0).toLocaleString()}</p>` : ''}
           </div>
 
           <table>
@@ -205,6 +256,9 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
                     if (col === 'cargo_value_usd' && value !== 'N/A') {
                       value = `KSh ${(value * 130).toLocaleString()}`;
                     }
+                    if (col === 'fuel_cost' && value !== 'N/A') {
+                      value = `KSh ${value.toLocaleString()}`;
+                    }
                     if (col.includes('date') && value !== 'N/A') {
                       value = new Date(value).toLocaleDateString();
                     }
@@ -216,8 +270,8 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
           </table>
 
           <div class="footer">
-            <p>This report was generated by TransLogistics Kenya Management System</p>
-            <p>© ${new Date().getFullYear()} TransLogistics Kenya. All rights reserved.</p>
+            <p>This report was generated by Approved Logistics Limited Management System</p>
+            <p>© ${new Date().getFullYear()} Approved Logistics Limited. All rights reserved.</p>
           </div>
 
           <button class="no-print" onclick="window.print()" style="margin: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print Report</button>

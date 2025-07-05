@@ -1,16 +1,21 @@
+
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Truck, Users, Route, AlertTriangle, Settings, Calendar, Loader2 } from "lucide-react";
+import { Truck, Users, Route, AlertTriangle, Settings, Calendar, Loader2, TrendingUp, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useTrucks, useTrips, useDrivers, useMaintenance } from "@/hooks/useSupabaseData";
+import { useTrucks, useTrips, useDrivers, useMaintenance, useFuelRecords } from "@/hooks/useSupabaseData";
+import { useState } from "react";
 
 const Dashboard = () => {
   const { data: trucks, isLoading: trucksLoading } = useTrucks();
   const { data: trips, isLoading: tripsLoading } = useTrips();
   const { data: drivers, isLoading: driversLoading } = useDrivers();
   const { data: maintenance, isLoading: maintenanceLoading } = useMaintenance();
+  const { data: fuelRecords, isLoading: fuelLoading } = useFuelRecords();
 
-  const isLoading = trucksLoading || tripsLoading || driversLoading || maintenanceLoading;
+  const [selectedTruck, setSelectedTruck] = useState<string | null>(null);
+
+  const isLoading = trucksLoading || tripsLoading || driversLoading || maintenanceLoading || fuelLoading;
 
   if (isLoading) {
     return (
@@ -39,6 +44,36 @@ const Dashboard = () => {
   const pendingMaintenance = maintenance?.filter(m => m.status === 'pending').length || 0;
   const completedMaintenance = maintenance?.filter(m => m.status === 'completed').length || 0;
   const totalMaintenanceCost = maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0;
+
+  // Get current month data for truck analytics
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  const getTruckAnalytics = (truckId: string) => {
+    const truckTrips = trips?.filter(trip => 
+      trip.truck_id === truckId && 
+      new Date(trip.created_at).getMonth() === currentMonth &&
+      new Date(trip.created_at).getFullYear() === currentYear
+    ) || [];
+
+    const truckFuel = fuelRecords?.filter(fuel => 
+      fuel.truck_id === truckId &&
+      new Date(fuel.fuel_date).getMonth() === currentMonth &&
+      new Date(fuel.fuel_date).getFullYear() === currentYear
+    ) || [];
+
+    const totalMileage = truckTrips.reduce((sum, trip) => sum + (trip.distance_km || 0), 0);
+    const totalFuelCost = truckFuel.reduce((sum, fuel) => sum + (fuel.total_cost || 0), 0);
+    const routes = [...new Set(truckTrips.map(trip => `${trip.origin} → ${trip.destination}`))];
+
+    return {
+      tripsCount: truckTrips.length,
+      totalMileage: Math.round(totalMileage),
+      totalFuelCost: Math.round(totalFuelCost * 130), // Convert to KSh
+      routes: routes.slice(0, 3), // Show top 3 routes
+      completedTrips: truckTrips.filter(trip => trip.status === 'completed').length
+    };
+  };
 
   // Compliance Statistics
   const getCertificateStatus = (expiryDate: string | null) => {
@@ -134,6 +169,76 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Monthly Truck Performance Analytics */}
+        <Card className="border-2 border-blue-400/50 dark:border-blue-600/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              Monthly Truck Performance Analytics
+            </CardTitle>
+            <CardDescription>Detailed performance metrics for each truck this month</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              {trucks?.map((truck) => {
+                const analytics = getTruckAnalytics(truck.id);
+                return (
+                  <Card key={truck.id} className="border border-muted hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-lg">{truck.truck_number}</h3>
+                        <Badge variant="outline" className="text-xs">
+                          {truck.make} {truck.model}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                            <p className="text-sm text-muted-foreground">Trips</p>
+                            <p className="text-xl font-bold text-blue-600">{analytics.tripsCount}</p>
+                          </div>
+                          <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                            <p className="text-sm text-muted-foreground">Completed</p>
+                            <p className="text-xl font-bold text-green-600">{analytics.completedTrips}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
+                            <p className="text-sm text-muted-foreground">Mileage</p>
+                            <p className="text-sm font-bold text-purple-600">{analytics.totalMileage.toLocaleString()} km</p>
+                          </div>
+                          <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
+                            <p className="text-sm text-muted-foreground">Fuel Cost</p>
+                            <p className="text-sm font-bold text-orange-600">KSh {analytics.totalFuelCost.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        
+                        {analytics.routes.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              Top Routes:
+                            </p>
+                            <div className="space-y-1">
+                              {analytics.routes.map((route, index) => (
+                                <p key={index} className="text-xs text-muted-foreground bg-muted/50 p-1 rounded">
+                                  {route}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Fleet and Compliance Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
