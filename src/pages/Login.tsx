@@ -45,7 +45,7 @@ const Login = () => {
             <Truck className="w-8 h-8 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">
-            Inland Africa Logistics
+            Approved Logistics Limited
           </CardTitle>
           <CardDescription>
             Sign in to access your logistics management system

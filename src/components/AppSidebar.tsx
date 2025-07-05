@@ -56,7 +56,7 @@ export function AppSidebar() {
             <Truck className="w-6 h-6 text-logistics-primary" />
           </div>
           <div>
-            <h2 className="text-white font-bold text-lg">Inland Africa</h2>
+            <h2 className="text-white font-bold text-lg">Approved Logistics Limited</h2>
             <p className="text-logistics-light text-sm">Logistics System</p>
           </div>
         </div>

@@ -80,7 +80,7 @@ const Auth = () => {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            Inland Africa Logistics
+            Approved Logistics Limited
           </CardTitle>
           <CardDescription>Access your logistics management system</CardDescription>
         </CardHeader>

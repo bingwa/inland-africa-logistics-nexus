@@ -56,7 +56,7 @@ const Index = () => {
               <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
                 <Truck className="w-8 h-8 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-white">Inland Africa Logistics</h1>
+              <h1 className="text-2xl font-bold text-white">Approved Logistics Limited</h1>
             </div>
             
             <div className="space-x-4">
