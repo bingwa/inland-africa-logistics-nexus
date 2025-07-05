@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { useCreateTruck } from "@/hooks/useSupabaseData";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Upload } from "lucide-react";
+import { TruckDocumentUpload } from "@/components/TruckDocumentUpload";
 
 interface AddTruckFormProps {
   onClose: () => void;
@@ -29,6 +30,12 @@ export const AddTruckForm = ({ onClose }: AddTruckFormProps) => {
     last_service_mileage: 0
   });
 
+  const [documents, setDocuments] = useState({
+    ntsa_certificate: null as File | null,
+    insurance_certificate: null as File | null,
+    tgl_certificate: null as File | null
+  });
+
   const createTruck = useCreateTruck();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +56,13 @@ export const AddTruckForm = ({ onClose }: AddTruckFormProps) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const handleFileSelect = (documentType: string, file: File) => {
+    setDocuments(prev => ({
+      ...prev,
+      [documentType]: file
     }));
   };
 
@@ -194,38 +208,59 @@ export const AddTruckForm = ({ onClose }: AddTruckFormProps) => {
           <div className="border-t pt-4">
             <h3 className="text-lg font-semibold mb-4 text-foreground">Kenyan Licensing & Certification</h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="ntsa_expiry">NTSA Certificate Expiry</Label>
-                <Input
-                  id="ntsa_expiry"
-                  type="date"
-                  value={formData.ntsa_expiry}
-                  onChange={(e) => handleInputChange('ntsa_expiry', e.target.value)}
-                  className="bg-background"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="ntsa_expiry"
+                    type="date"
+                    value={formData.ntsa_expiry}
+                    onChange={(e) => handleInputChange('ntsa_expiry', e.target.value)}
+                    className="bg-background flex-1"
+                  />
+                  <TruckDocumentUpload
+                    documentType="ntsa_certificate"
+                    onFileSelect={(file) => handleFileSelect('ntsa_certificate', file)}
+                    selectedFile={documents.ntsa_certificate}
+                  />
+                </div>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="insurance_expiry">Insurance Expiry</Label>
-                <Input
-                  id="insurance_expiry"
-                  type="date"
-                  value={formData.insurance_expiry}
-                  onChange={(e) => handleInputChange('insurance_expiry', e.target.value)}
-                  className="bg-background"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="insurance_expiry"
+                    type="date"
+                    value={formData.insurance_expiry}
+                    onChange={(e) => handleInputChange('insurance_expiry', e.target.value)}
+                    className="bg-background flex-1"
+                  />
+                  <TruckDocumentUpload
+                    documentType="insurance_certificate"
+                    onFileSelect={(file) => handleFileSelect('insurance_certificate', file)}
+                    selectedFile={documents.insurance_certificate}
+                  />
+                </div>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="tgl_expiry">TGL Certificate Expiry</Label>
-                <Input
-                  id="tgl_expiry"
-                  type="date"
-                  value={formData.tgl_expiry}
-                  onChange={(e) => handleInputChange('tgl_expiry', e.target.value)}
-                  className="bg-background"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="tgl_expiry"
+                    type="date"
+                    value={formData.tgl_expiry}
+                    onChange={(e) => handleInputChange('tgl_expiry', e.target.value)}
+                    className="bg-background flex-1"
+                  />
+                  <TruckDocumentUpload
+                    documentType="tgl_certificate"
+                    onFileSelect={(file) => handleFileSelect('tgl_certificate', file)}
+                    selectedFile={documents.tgl_certificate}
+                  />
+                </div>
               </div>
             </div>
           </div>

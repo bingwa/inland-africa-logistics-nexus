@@ -12,16 +12,15 @@ import {
   Bell, 
   Shield, 
   Palette, 
-  Globe, 
-  Database,
   Mail,
   Phone,
   Smartphone,
   Save,
   RefreshCw
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "next-themes";
 
 const Settings = () => {
   const [notifications, setNotifications] = useState({
@@ -34,7 +33,6 @@ const Settings = () => {
   });
 
   const [preferences, setPreferences] = useState({
-    theme: 'light',
     language: 'en',
     timezone: 'Africa/Nairobi',
     currency: 'KES',
@@ -48,6 +46,12 @@ const Settings = () => {
   });
 
   const { toast } = useToast();
+  const { theme, setTheme, themes } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSaveSettings = () => {
     toast({
@@ -67,6 +71,23 @@ const Settings = () => {
   const handleSecurityChange = (key: string, value: boolean | string) => {
     setSecurity(prev => ({ ...prev, [key]: value }));
   };
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    toast({
+      title: "Theme Updated",
+      description: `Theme changed to ${newTheme}`,
+    });
+  };
+
+  const handleChangePassword = () => {
+    toast({
+      title: "Change Password",
+      description: "Password change functionality would be implemented here.",
+    });
+  };
+
+  if (!mounted) return null;
 
   return (
     <Layout>
@@ -229,7 +250,7 @@ const Settings = () => {
               </div>
 
               <div className="pt-4">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={handleChangePassword}>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Change Password
                 </Button>
@@ -238,7 +259,7 @@ const Settings = () => {
           </Card>
 
           {/* Application Preferences */}
-          <Card>
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="w-5 h-5" />
@@ -248,13 +269,10 @@ const Settings = () => {
                 Customize your application experience
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="theme">Theme</Label>
-                <Select 
-                  value={preferences.theme} 
-                  onValueChange={(value) => handlePreferenceChange('theme', value)}
-                >
+                <Select value={theme} onValueChange={handleThemeChange}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -315,7 +333,7 @@ const Settings = () => {
                 </Select>
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <Label htmlFor="dateFormat">Date Format</Label>
                 <Select 
                   value={preferences.dateFormat} 
@@ -330,68 +348,6 @@ const Settings = () => {
                     <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* System Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="w-5 h-5" />
-                System Configuration
-              </CardTitle>
-              <CardDescription>
-                Advanced system and integration settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="backup">Automatic Backup</Label>
-                <Select defaultValue="daily">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="disabled">Disabled</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="dataRetention">Data Retention (months)</Label>
-                <Input
-                  id="dataRetention"
-                  type="number"
-                  defaultValue="12"
-                  min="1"
-                  max="60"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="apiRate">API Rate Limit (requests/hour)</Label>
-                <Input
-                  id="apiRate"
-                  type="number"
-                  defaultValue="1000"
-                  min="100"
-                  max="10000"
-                />
-              </div>
-
-              <div className="pt-4 space-y-2">
-                <Button variant="outline" className="w-full">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Clear Cache
-                </Button>
-                <Button variant="outline" className="w-full">
-                  <Database className="w-4 h-4 mr-2" />
-                  Export Data
-                </Button>
               </div>
             </CardContent>
           </Card>
