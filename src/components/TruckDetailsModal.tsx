@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Truck, Calendar, Gauge, X, Settings, MapPin, FileText, AlertTriangle, CheckCircle } from "lucide-react";
+import { Truck, Calendar, Gauge, X, Settings, MapPin, FileText, AlertTriangle, CheckCircle, TrendingUp, Fuel, Wrench, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTruckStatistics } from "@/hooks/useSupabaseData";
 
 interface TruckDetailsModalProps {
   truck: any;
@@ -20,6 +20,7 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
 }) => {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
+  const { data: statistics, isLoading: statisticsLoading } = useTruckStatistics(truck.id);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -110,6 +111,22 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
             </div>
           </div>
 
+          ${statistics ? `
+          <div class="section">
+            <h3>Monthly Performance Statistics</h3>
+            <div class="grid">
+              <div>
+                <div class="field"><span class="label">Monthly Service Cost:</span><span class="value">KSh ${statistics.monthlyServiceCost.toLocaleString()}</span></div>
+                <div class="field"><span class="label">Monthly Fuel Cost:</span><span class="value">KSh ${statistics.monthlyFuelCost.toLocaleString()}</span></div>
+              </div>
+              <div>
+                <div class="field"><span class="label">Monthly Fuel Consumption:</span><span class="value">${statistics.monthlyFuelConsumption} liters</span></div>
+                <div class="field"><span class="label">Monthly Mileage:</span><span class="value">${statistics.monthlyMileage.toLocaleString()} km</span></div>
+              </div>
+            </div>
+          </div>
+          ` : ''}
+
           <div class="section">
             <h3>Licensing & Certification Status</h3>
             <div class="field"><span class="label">NTSA Inspection:</span><span class="value cert-status">${truck.ntsa_expiry ? new Date(truck.ntsa_expiry).toLocaleDateString() : 'Not Available'}</span></div>
@@ -166,6 +183,50 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
               Print Details
             </Button>
           </div>
+
+          {/* Monthly Statistics */}
+          {statistics && !statisticsLoading && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Monthly Performance Statistics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <Wrench className="w-8 h-8 text-blue-600" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Service Cost</p>
+                      <p className="text-lg font-bold text-blue-600">KSh {statistics.monthlyServiceCost.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <DollarSign className="w-8 h-8 text-green-600" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Fuel Cost</p>
+                      <p className="text-lg font-bold text-green-600">KSh {statistics.monthlyFuelCost.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                    <Fuel className="w-8 h-8 text-orange-600" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Fuel Consumption</p>
+                      <p className="text-lg font-bold text-orange-600">{statistics.monthlyFuelConsumption}L</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <Gauge className="w-8 h-8 text-purple-600" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Monthly Mileage</p>
+                      <p className="text-lg font-bold text-purple-600">{statistics.monthlyMileage.toLocaleString()} km</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Vehicle Specifications */}
           <Card>

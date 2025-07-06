@@ -1,5 +1,4 @@
-
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -26,6 +25,7 @@ export const useTrucks = () => {
 };
 
 export const useCreateTruck = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (newTruck: TruckInsert) => {
       const { data, error } = await supabase
@@ -36,10 +36,14 @@ export const useCreateTruck = () => {
       if (error) throw error;
       return data;
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trucks"] });
+    },
   });
 };
 
 export const useUpdateTruckStatus = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { data, error } = await supabase
@@ -50,6 +54,62 @@ export const useUpdateTruckStatus = () => {
         .single();
       if (error) throw error;
       return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trucks"] });
+    },
+  });
+};
+
+export const useTruckStatistics = (truckId: string) => {
+  return useQuery({
+    queryKey: ["truck-statistics", truckId],
+    queryFn: async () => {
+      const currentDate = new Date();
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+      // Get maintenance records for current month
+      const { data: maintenanceData, error: maintenanceError } = await supabase
+        .from("maintenance")
+        .select("cost, service_date")
+        .eq("truck_id", truckId)
+        .gte("service_date", startOfMonth.toISOString().split('T')[0])
+        .lte("service_date", endOfMonth.toISOString().split('T')[0]);
+
+      if (maintenanceError) throw maintenanceError;
+
+      // Get fuel records for current month
+      const { data: fuelData, error: fuelError } = await supabase
+        .from("fuel_records")
+        .select("total_cost, liters, fuel_date")
+        .eq("truck_id", truckId)
+        .gte("fuel_date", startOfMonth.toISOString())
+        .lte("fuel_date", endOfMonth.toISOString());
+
+      if (fuelError) throw fuelError;
+
+      // Get trips for current month to calculate mileage
+      const { data: tripsData, error: tripsError } = await supabase
+        .from("trips")
+        .select("distance_km, created_at")
+        .eq("truck_id", truckId)
+        .gte("created_at", startOfMonth.toISOString())
+        .lte("created_at", endOfMonth.toISOString());
+
+      if (tripsError) throw tripsError;
+
+      const monthlyServiceCost = maintenanceData?.reduce((sum, record) => sum + (record.cost || 0), 0) || 0;
+      const monthlyFuelCost = fuelData?.reduce((sum, record) => sum + (record.total_cost || 0), 0) || 0;
+      const monthlyFuelConsumption = fuelData?.reduce((sum, record) => sum + (record.liters || 0), 0) || 0;
+      const monthlyMileage = tripsData?.reduce((sum, trip) => sum + (trip.distance_km || 0), 0) || 0;
+
+      return {
+        monthlyServiceCost: Math.round(monthlyServiceCost * 130), // Convert to KSh
+        monthlyFuelCost: Math.round(monthlyFuelCost * 130), // Convert to KSh
+        monthlyFuelConsumption: Math.round(monthlyFuelConsumption),
+        monthlyMileage: Math.round(monthlyMileage)
+      };
     },
   });
 };
@@ -135,6 +195,23 @@ export const useMaintenance = () => {
           *,
           trucks(truck_number, make, model)
         `);
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+export const useOngoingMaintenance = () => {
+  return useQuery({
+    queryKey: ["ongoing-maintenance"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("maintenance")
+        .select(`
+          *,
+          trucks(truck_number, make, model)
+        `)
+        .in("status", ["pending", "in_progress"]);
       if (error) throw error;
       return data;
     },
