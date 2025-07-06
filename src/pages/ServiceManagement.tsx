@@ -1,4 +1,3 @@
-
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { FilterExportBar } from "@/components/FilterExportBar";
 import { Calendar, Settings, Truck, Loader2, Clock, CheckCircle, DollarSign, FileText } from "lucide-react";
 import { useState } from "react";
-import { useOngoingMaintenance, useCreateMaintenance } from "@/hooks/useSupabaseData";
+import { useOngoingMaintenance, useCreateMaintenance, useUpdateMaintenanceStatus } from "@/hooks/useSupabaseData";
 import { AddMaintenanceRecord } from "@/components/forms/AddMaintenanceRecord";
 import { MaintenanceDetailsModal } from "@/components/MaintenanceDetailsModal";
 import { ScheduleServiceModal } from "@/components/ScheduleServiceModal";
@@ -18,8 +17,9 @@ const ServiceManagement = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const { data: maintenance, isLoading, error } = useOngoingMaintenance(); // Changed to use ongoing maintenance only
+  const { data: maintenance, isLoading, error } = useOngoingMaintenance();
   const createMaintenance = useCreateMaintenance();
+  const updateMaintenanceStatus = useUpdateMaintenanceStatus();
   const { toast } = useToast();
 
   if (isLoading) {
@@ -70,6 +70,30 @@ const ServiceManagement = () => {
 
   const handleExport = (format: string) => {
     console.log(`Exporting service records in ${format} format`);
+  };
+
+  const handleCompleteService = async (recordId: string) => {
+    try {
+      await updateMaintenanceStatus.mutateAsync({
+        id: recordId,
+        status: 'completed',
+        completionData: {
+          actual_completion_date: new Date().toISOString().split('T')[0]
+        }
+      });
+      
+      toast({
+        title: "Service Completed",
+        description: "Maintenance service has been marked as completed successfully.",
+      });
+    } catch (error) {
+      console.error('Failed to complete service:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete service. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const generateTruckServiceReport = (truckId: string, period: 'monthly' | 'annual') => {
@@ -340,7 +364,19 @@ const ServiceManagement = () => {
                       >
                         View Details
                       </Button>
-                      {!isCompleted && (
+                      {record.status === 'in_progress' && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-green-400 text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                          onClick={() => handleCompleteService(record.id)}
+                          disabled={updateMaintenanceStatus.isPending}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Complete Service
+                        </Button>
+                      )}
+                      {!isCompleted && record.status === 'pending' && (
                         <Button 
                           size="sm" 
                           variant="outline" 

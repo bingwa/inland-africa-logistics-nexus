@@ -61,6 +61,48 @@ export const useUpdateTruckStatus = () => {
   });
 };
 
+export const useUpdateMaintenanceStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, completionData }: { 
+      id: string; 
+      status: string;
+      completionData?: {
+        actual_completion_date?: string;
+        final_cost?: number;
+        notes?: string;
+      }
+    }) => {
+      const updateData: any = { status };
+      
+      if (completionData) {
+        if (completionData.actual_completion_date) {
+          updateData.actual_completion_date = completionData.actual_completion_date;
+        }
+        if (completionData.final_cost !== undefined) {
+          updateData.cost = completionData.final_cost;
+        }
+        if (completionData.notes) {
+          updateData.description = completionData.notes;
+        }
+      }
+
+      const { data, error } = await supabase
+        .from("maintenance")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ongoing-maintenance"] });
+      queryClient.invalidateQueries({ queryKey: ["maintenance"] });
+    },
+  });
+};
+
 export const useTruckStatistics = (truckId: string) => {
   return useQuery({
     queryKey: ["truck-statistics", truckId],
