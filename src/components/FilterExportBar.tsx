@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,7 @@ interface FilterExportBarProps {
     status?: string[];
     types?: string[];
     locations?: string[];
+    make?: string[];
   };
   showDateFilter?: boolean;
 }
@@ -243,6 +243,26 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
                       {filterOptions.types.map(type => (
                         <SelectItem key={type} value={type}>
                           {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Make Filter */}
+              {filterOptions.make && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Make</label>
+                  <Select value={filters.make || ''} onValueChange={(value) => handleFilterChange('make', value)}>
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="All makes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All makes</SelectItem>
+                      {filterOptions.make.map(make => (
+                        <SelectItem key={make} value={make}>
+                          {make}
                         </SelectItem>
                       ))}
                     </SelectContent>
