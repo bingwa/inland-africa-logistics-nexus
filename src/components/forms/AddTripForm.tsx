@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateTrip, useTrucks, useDrivers } from "@/hooks/useSupabaseData";
 import { X } from "lucide-react";
+import { calculateDistance } from "@/utils/distanceCalculator";
 
 interface AddTripFormProps {
   onClose: () => void;
@@ -35,10 +36,33 @@ export const AddTripForm = ({ onClose }: AddTripFormProps) => {
   const { data: trucks } = useTrucks();
   const { data: drivers } = useDrivers();
   const [isLoading, setIsLoading] = useState(false);
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
 
-  // Watch distance and truck selection for wear and tear calculation
+  // Watch distance, truck selection, origin, and destination for calculations
   const watchedDistance = watch("distance_km");
   const watchedTruckId = watch("truck_id");
+  const watchedOrigin = watch("origin");
+  const watchedDestination = watch("destination");
+
+  // Auto-calculate distance when origin and destination are both filled
+  React.useEffect(() => {
+    const calculateDistanceAsync = async () => {
+      if (watchedOrigin && watchedDestination && watchedOrigin.trim() && watchedDestination.trim()) {
+        setIsCalculatingDistance(true);
+        try {
+          const distance = await calculateDistance(watchedOrigin, watchedDestination);
+          setValue("distance_km", distance);
+        } catch (error) {
+          console.error('Error calculating distance:', error);
+          // Fallback to manual entry if calculation fails
+        } finally {
+          setIsCalculatingDistance(false);
+        }
+      }
+    };
+
+    calculateDistanceAsync();
+  }, [watchedOrigin, watchedDestination, setValue]);
 
   // Calculate wear and tear based on distance and truck type
   const calculateWearAndTear = (distance: number, truckId: string) => {
@@ -133,13 +157,25 @@ export const AddTripForm = ({ onClose }: AddTripFormProps) => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="distance_km">Distance (km)</Label>
-                <Input
-                  id="distance_km"
-                  type="number"
-                  step="0.1"
-                  {...register("distance_km", { valueAsNumber: true })}
-                  placeholder="e.g., 480.5"
-                />
+                <div className="relative">
+                  <Input
+                    id="distance_km"
+                    type="number"
+                    step="0.1"
+                    {...register("distance_km", { valueAsNumber: true })}
+                    placeholder="Auto-calculated"
+                    className={isCalculatingDistance ? "bg-gray-50 dark:bg-gray-800" : ""}
+                    readOnly={isCalculatingDistance}
+                  />
+                  {isCalculatingDistance && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Distance is automatically calculated based on origin and destination
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="planned_departure">Planned Departure *</Label>
@@ -232,7 +268,7 @@ export const AddTripForm = ({ onClose }: AddTripFormProps) => {
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading || isCalculatingDistance}>
                 {isLoading ? "Creating..." : "Create Trip"}
               </Button>
             </div>
