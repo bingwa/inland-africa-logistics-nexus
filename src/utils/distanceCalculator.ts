@@ -20,7 +20,7 @@ const kenyaCities: CityCoordinates = {
 };
 
 // Haversine formula to calculate distance between two points
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Radius of the Earth in kilometers
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -41,7 +41,7 @@ export const getDistanceBetweenCities = (origin: string, destination: string): n
     return 0; // Return 0 if cities not found
   }
   
-  return calculateDistance(
+  return calculateHaversineDistance(
     originCoords.lat, 
     originCoords.lng, 
     destinationCoords.lat, 
@@ -51,4 +51,15 @@ export const getDistanceBetweenCities = (origin: string, destination: string): n
 
 export const getAvailableCities = (): string[] => {
   return Object.keys(kenyaCities);
+};
+
+// Export the main calculateDistance function that works with city names
+export const calculateDistance = async (origin: string, destination: string): Promise<number> => {
+  // Simulate async operation (in real implementation this would be an API call)
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const distance = getDistanceBetweenCities(origin, destination);
+      resolve(distance);
+    }, 500); // Small delay to simulate API call
+  });
 };
