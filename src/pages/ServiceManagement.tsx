@@ -76,10 +76,7 @@ const ServiceManagement = () => {
     try {
       await updateMaintenanceStatus.mutateAsync({
         id: recordId,
-        status: 'completed',
-        completionData: {
-          actual_completion_date: new Date().toISOString().split('T')[0]
-        }
+        status: 'completed'
       });
       
       toast({

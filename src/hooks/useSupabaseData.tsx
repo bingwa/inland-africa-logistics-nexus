@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -68,17 +69,16 @@ export const useUpdateMaintenanceStatus = () => {
       id: string; 
       status: string;
       completionData?: {
-        actual_completion_date?: string;
         final_cost?: number;
         notes?: string;
       }
     }) => {
-      const updateData: any = { status };
+      const updateData: any = { 
+        status,
+        updated_at: new Date().toISOString()
+      };
       
       if (completionData) {
-        if (completionData.actual_completion_date) {
-          updateData.actual_completion_date = completionData.actual_completion_date;
-        }
         if (completionData.final_cost !== undefined) {
           updateData.cost = completionData.final_cost;
         }
