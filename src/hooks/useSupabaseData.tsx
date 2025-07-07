@@ -279,6 +279,7 @@ export const useOngoingMaintenance = () => {
 };
 
 export const useCreateMaintenance = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (newMaintenance: MaintenanceInsert) => {
       const { data, error } = await supabase
@@ -288,6 +289,10 @@ export const useCreateMaintenance = () => {
         .single();
       if (error) throw error;
       return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["maintenance"] });
+      queryClient.invalidateQueries({ queryKey: ["ongoing-maintenance"] });
     },
   });
 };

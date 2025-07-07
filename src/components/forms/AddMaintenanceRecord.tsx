@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -17,11 +18,23 @@ interface AddMaintenanceRecordProps {
   onClose: () => void;
 }
 
+const maintenanceTypes = [
+  { id: "routine_maintenance", label: "Routine Maintenance" },
+  { id: "oil_change", label: "Oil Change" },
+  { id: "brake_service", label: "Brake Service" },
+  { id: "tire_service", label: "Tire Service" },
+  { id: "engine_repair", label: "Engine Repair" },
+  { id: "transmission_service", label: "Transmission Service" },
+  { id: "electrical_repair", label: "Electrical Repair" },
+  { id: "inspection", label: "Safety Inspection" },
+  { id: "other", label: "Other" }
+];
+
 export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onClose }) => {
   const [serviceDate, setServiceDate] = useState<Date>();
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     truck_id: '',
-    maintenance_type: '',
     description: '',
     technician: '',
     cost: '',
@@ -34,26 +47,29 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!serviceDate || !formData.truck_id || !formData.maintenance_type || !formData.description) {
+    if (!serviceDate || !formData.truck_id || selectedTypes.length === 0 || !formData.description) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields and select at least one maintenance type.",
         variant: "destructive"
       });
       return;
     }
 
     try {
+      const maintenanceType = selectedTypes.join(", ");
+      
       await createMaintenance.mutateAsync({
         ...formData,
+        maintenance_type: maintenanceType,
         service_date: serviceDate.toISOString().split('T')[0],
         cost: parseFloat(formData.cost) || 0,
-        status: 'completed'
+        status: 'pending'
       });
 
       toast({
         title: "Maintenance Record Added",
-        description: "Maintenance record has been successfully added.",
+        description: "Maintenance record has been successfully scheduled.",
       });
       
       onClose();
@@ -73,12 +89,20 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
     }));
   };
 
+  const handleTypeToggle = (typeId: string) => {
+    setSelectedTypes(prev => 
+      prev.includes(typeId) 
+        ? prev.filter(id => id !== typeId)
+        : [...prev, typeId]
+    );
+  };
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg sm:text-xl">Add Maintenance Record</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">Schedule Maintenance Service</DialogTitle>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="w-4 h-4" />
             </Button>
@@ -101,28 +125,6 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
                       {truck.truck_number} - {truck.make} {truck.model}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="maintenanceType" className="text-sm font-medium">
-                Maintenance Type <span className="text-red-500">*</span>
-              </Label>
-              <Select value={formData.maintenance_type} onValueChange={(value) => handleInputChange('maintenance_type', value)}>
-                <SelectTrigger className="text-sm">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="routine_maintenance">Routine Maintenance</SelectItem>
-                  <SelectItem value="oil_change">Oil Change</SelectItem>
-                  <SelectItem value="brake_service">Brake Service</SelectItem>
-                  <SelectItem value="tire_service">Tire Service</SelectItem>
-                  <SelectItem value="engine_repair">Engine Repair</SelectItem>
-                  <SelectItem value="transmission_service">Transmission Service</SelectItem>
-                  <SelectItem value="electrical_repair">Electrical Repair</SelectItem>
-                  <SelectItem value="inspection">Safety Inspection</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -151,7 +153,29 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
 
+          <div>
+            <Label className="text-sm font-medium">
+              Maintenance Types <span className="text-red-500">*</span>
+            </Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2 p-3 border rounded-lg">
+              {maintenanceTypes.map((type) => (
+                <div key={type.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={type.id}
+                    checked={selectedTypes.includes(type.id)}
+                    onCheckedChange={() => handleTypeToggle(type.id)}
+                  />
+                  <Label htmlFor={type.id} className="text-sm cursor-pointer">
+                    {type.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="cost" className="text-sm font-medium">Cost (KSh)</Label>
               <Input
@@ -174,17 +198,17 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
                 className="text-sm"
               />
             </div>
+          </div>
 
-            <div>
-              <Label htmlFor="serviceProvider" className="text-sm font-medium">Service Provider</Label>
-              <Input
-                id="serviceProvider"
-                placeholder="Enter service provider"
-                value={formData.service_provider}
-                onChange={(e) => handleInputChange('service_provider', e.target.value)}
-                className="text-sm"
-              />
-            </div>
+          <div>
+            <Label htmlFor="serviceProvider" className="text-sm font-medium">Service Provider</Label>
+            <Input
+              id="serviceProvider"
+              placeholder="Enter service provider"
+              value={formData.service_provider}
+              onChange={(e) => handleInputChange('service_provider', e.target.value)}
+              className="text-sm"
+            />
           </div>
 
           <div>
@@ -215,7 +239,7 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
               className="flex-1 bg-primary hover:bg-primary/90 text-sm"
               disabled={createMaintenance.isPending}
             >
-              {createMaintenance.isPending ? "Adding..." : "Add Record"}
+              {createMaintenance.isPending ? "Scheduling..." : "Schedule Service"}
             </Button>
           </div>
         </form>
