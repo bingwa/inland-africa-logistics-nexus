@@ -2,6 +2,7 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Truck, Users, Route, AlertTriangle, Settings, Calendar, Loader2, TrendingUp, MapPin, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTrucks, useTrips, useDrivers, useMaintenance, useFuelRecords } from "@/hooks/useSupabaseData";

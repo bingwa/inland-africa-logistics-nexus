@@ -2,9 +2,8 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { FilterExportBar } from "@/components/FilterExportBar";
-import { Calendar, Settings, Truck, Loader2, Clock, CheckCircle, DollarSign, FileText } from "lucide-react";
+import { Calendar, Settings, Truck, Loader2, Clock, CheckCircle, DollarSign } from "lucide-react";
 import { useState } from "react";
 import { useOngoingMaintenance, useCreateMaintenance, useUpdateMaintenanceStatus } from "@/hooks/useSupabaseData";
 import { AddMaintenanceRecord } from "@/components/forms/AddMaintenanceRecord";
@@ -42,16 +41,6 @@ const ServiceManagement = () => {
       </Layout>
     );
   }
-
-  const getStatusColor = (status: string) => {
-    const colors = {
-      'pending': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      'in_progress': 'bg-blue-100 text-blue-800 border-blue-300',
-      'completed': 'bg-green-100 text-green-800 border-green-300',
-      'overdue': 'bg-red-100 text-red-800 border-red-300'
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-300';
-  };
 
   const filteredRecords = maintenance?.filter(record => {
     const matchesSearch = record.maintenance_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,7 +93,6 @@ const ServiceManagement = () => {
         cost: serviceData.cost,
         technician: serviceData.technician || null,
         service_provider: serviceData.serviceProvider || null,
-        status: 'pending',
         items_purchased: serviceData.itemsPurchased || null
       };
 
@@ -208,102 +196,97 @@ const ServiceManagement = () => {
               onFilterApply={handleFilterApply}
               onExport={handleExport}
               filterOptions={{
-                status: ['pending', 'in_progress'],
                 types: ['engine', 'brakes', 'transmission', 'electrical', 'suspension', 'tires', 'other']
               }}
             />
 
             <div className="space-y-4 mt-6">
-              {filteredRecords.map((record) => {
-                const isCompleted = record.status === 'completed';
-                
-                return (
-                  <div key={record.id} className="border-2 border-yellow-300/50 dark:border-yellow-600/50 rounded-lg p-3 sm:p-4 lg:p-6 hover:shadow-md transition-shadow">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-foreground">{record.maintenance_type}</h3>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">{record.description}</p>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
-                          <div className="text-muted-foreground">
-                            <span className="font-medium">Truck:</span> {record.trucks?.truck_number || 'N/A'}
-                          </div>
-                          <div className="text-muted-foreground">
-                            <span className="font-medium">Service Date:</span> {new Date(record.service_date).toLocaleDateString()}
-                          </div>
-                        </div>
-                        {record.items_purchased && (
-                          <div className="mt-2 text-sm">
-                            <span className="font-medium text-muted-foreground">Items:</span> {record.items_purchased}
-                          </div>
-                        )}
+              {filteredRecords.map((record) => (
+                <div key={record.id} className="border-2 border-yellow-300/50 dark:border-yellow-600/50 rounded-lg p-3 sm:p-4 lg:p-6 hover:shadow-md transition-shadow">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-bold text-foreground">{record.maintenance_type}</h3>
                       </div>
-                      
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Cost</p>
-                          <p className="font-medium text-foreground">KSh {Math.round(record.cost * 130).toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground mb-2">{record.description}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
+                        <div className="text-muted-foreground">
+                          <span className="font-medium">Truck:</span> {record.trucks?.truck_number || 'N/A'}
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Provider</p>
-                          <p className="font-medium text-foreground">{record.service_provider || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Technician</p>
-                          <p className="font-medium text-foreground">{record.technician || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Downtime</p>
-                          <p className="font-medium text-foreground">{record.downtime_hours || 0}h</p>
+                        <div className="text-muted-foreground">
+                          <span className="font-medium">Service Date:</span> {new Date(record.service_date).toLocaleDateString()}
                         </div>
                       </div>
+                      {record.items_purchased && (
+                        <div className="mt-2 text-sm">
+                          <span className="font-medium text-muted-foreground">Items:</span> {record.items_purchased}
+                        </div>
+                      )}
                     </div>
                     
-                    {record.next_service_date && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Next Service: {new Date(record.next_service_date).toLocaleDateString()}</span>
-                        </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Cost</p>
+                        <p className="font-medium text-foreground">KSh {Math.round(record.cost * 130).toLocaleString()}</p>
                       </div>
-                    )}
-                    
-                    <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border">
+                      <div>
+                        <p className="text-muted-foreground">Provider</p>
+                        <p className="font-medium text-foreground">{record.service_provider || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Technician</p>
+                        <p className="font-medium text-foreground">{record.technician || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Downtime</p>
+                        <p className="font-medium text-foreground">{record.downtime_hours || 0}h</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {record.next_service_date && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Next Service: {new Date(record.next_service_date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                      onClick={() => setSelectedRecord(record)}
+                    >
+                      View Details
+                    </Button>
+                    {record.status === 'in_progress' && (
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                        onClick={() => setSelectedRecord(record)}
+                        className="border-green-400 text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                        onClick={() => handleCompleteService(record.id)}
+                        disabled={updateMaintenanceStatus.isPending}
                       >
-                        View Details
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Complete Service
                       </Button>
-                      {record.status === 'in_progress' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="border-green-400 text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                          onClick={() => handleCompleteService(record.id)}
-                          disabled={updateMaintenanceStatus.isPending}
-                        >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Complete Service
-                        </Button>
-                      )}
-                      {!isCompleted && record.status === 'pending' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="border-green-400 text-foreground hover:bg-green-50 dark:hover:bg-green-900/20"
-                          onClick={() => setShowScheduleModal(true)}
-                        >
-                          Schedule Service
-                        </Button>
-                      )}
-                    </div>
+                    )}
+                    {record.status === 'pending' && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="border-green-400 text-foreground hover:bg-green-50 dark:hover:bg-green-900/20"
+                        onClick={() => setShowScheduleModal(true)}
+                      >
+                        Schedule Service
+                      </Button>
+                    )}
                   </div>
-                );
-              })}
+                </div>
+              ))}
               
               {(!maintenance || maintenance.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">

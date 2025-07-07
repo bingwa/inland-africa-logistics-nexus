@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -74,7 +73,6 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
         maintenance_type: maintenanceType,
         service_date: serviceDate.toISOString().split('T')[0],
         cost: parseFloat(formData.cost) || 0,
-        status: 'pending',
         items_purchased: itemsString
       });
 

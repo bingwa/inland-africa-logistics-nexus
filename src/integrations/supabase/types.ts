@@ -201,6 +201,7 @@ export type Database = {
           description: string
           downtime_hours: number | null
           id: string
+          items_purchased: string | null
           maintenance_type: string
           mileage_at_service: number | null
           next_service_date: string | null
@@ -217,6 +218,7 @@ export type Database = {
           description: string
           downtime_hours?: number | null
           id?: string
+          items_purchased?: string | null
           maintenance_type: string
           mileage_at_service?: number | null
           next_service_date?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           description?: string
           downtime_hours?: number | null
           id?: string
+          items_purchased?: string | null
           maintenance_type?: string
           mileage_at_service?: number | null
           next_service_date?: string | null
