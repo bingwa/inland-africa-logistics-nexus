@@ -9,13 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar as CalendarIcon, X } from "lucide-react";
+import { Calendar as CalendarIcon, X, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useTrucks, useCreateMaintenance } from "@/hooks/useSupabaseData";
 
 interface AddMaintenanceRecordProps {
   onClose: () => void;
+}
+
+interface ItemPurchased {
+  name: string;
+  quantity: number;
+  cost: number;
 }
 
 const maintenanceTypes = [
@@ -33,6 +39,7 @@ const maintenanceTypes = [
 export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onClose }) => {
   const [serviceDate, setServiceDate] = useState<Date>();
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [itemsPurchased, setItemsPurchased] = useState<ItemPurchased[]>([]);
   const [formData, setFormData] = useState({
     truck_id: '',
     description: '',
@@ -58,13 +65,17 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
 
     try {
       const maintenanceType = selectedTypes.join(", ");
+      const itemsString = itemsPurchased.length > 0 
+        ? itemsPurchased.map(item => `${item.name} (Qty: ${item.quantity}, Cost: KSh ${Math.round(item.cost * 130)})`).join(', ')
+        : null;
       
       await createMaintenance.mutateAsync({
         ...formData,
         maintenance_type: maintenanceType,
         service_date: serviceDate.toISOString().split('T')[0],
         cost: parseFloat(formData.cost) || 0,
-        status: 'pending'
+        status: 'pending',
+        items_purchased: itemsString
       });
 
       toast({
@@ -97,9 +108,23 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
     );
   };
 
+  const addItem = () => {
+    setItemsPurchased(prev => [...prev, { name: '', quantity: 1, cost: 0 }]);
+  };
+
+  const removeItem = (index: number) => {
+    setItemsPurchased(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, field: keyof ItemPurchased, value: string | number) => {
+    setItemsPurchased(prev => prev.map((item, i) => 
+      i === index ? { ...item, [field]: value } : item
+    ));
+  };
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg sm:text-xl">Schedule Maintenance Service</DialogTitle>
@@ -177,7 +202,7 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="cost" className="text-sm font-medium">Cost (KSh)</Label>
+              <Label htmlFor="cost" className="text-sm font-medium">Service Cost (KSh)</Label>
               <Input
                 id="cost"
                 type="number"
@@ -223,6 +248,68 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
               rows={3}
               className="text-sm resize-none"
             />
+          </div>
+
+          {/* Items Purchased Section */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-sm font-medium">Items Purchased</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addItem}
+                className="text-sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Item
+              </Button>
+            </div>
+            
+            {itemsPurchased.map((item, index) => (
+              <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3 p-3 border rounded-lg">
+                <div>
+                  <Label className="text-xs">Item Name</Label>
+                  <Input
+                    placeholder="Item name"
+                    value={item.name}
+                    onChange={(e) => updateItem(index, 'name', e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Quantity</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Cost (KSh)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={item.cost}
+                    onChange={(e) => updateItem(index, 'cost', parseFloat(e.target.value) || 0)}
+                    className="text-sm"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeItem(index)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 pt-4">

@@ -1,3 +1,4 @@
+
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,93 +94,6 @@ const ServiceManagement = () => {
     }
   };
 
-  const generateTruckServiceReport = (truckId: string, period: 'monthly' | 'annual') => {
-    const truck = maintenance?.find(m => m.truck_id === truckId)?.trucks;
-    if (!truck) return;
-
-    const truckMaintenance = maintenance?.filter(m => m.truck_id === truckId) || [];
-    const currentDate = new Date();
-    let startDate: Date;
-
-    if (period === 'monthly') {
-      startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    } else {
-      startDate = new Date(currentDate.getFullYear(), 0, 1);
-    }
-
-    const periodMaintenance = truckMaintenance.filter(m => 
-      new Date(m.service_date) >= startDate && new Date(m.service_date) <= currentDate
-    );
-
-    const totalCost = periodMaintenance.reduce((sum, m) => sum + (m.cost || 0), 0);
-    const avgDowntime = periodMaintenance.reduce((sum, m) => sum + (m.downtime_hours || 0), 0) / (periodMaintenance.length || 1);
-
-    const reportWindow = window.open('', '_blank');
-    if (!reportWindow) return;
-
-    const reportHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${truck.truck_number} - ${period.charAt(0).toUpperCase() + period.slice(1)} Service Report</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f5f5f5; }
-            .summary { background-color: #f9f9f9; padding: 15px; margin: 20px 0; }
-            @media print { .no-print { display: none; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Approved Logistics Limited</h1>
-            <h2>${truck.truck_number} - ${period.charAt(0).toUpperCase() + period.slice(1)} Service Report</h2>
-            <p>Period: ${startDate.toLocaleDateString()} - ${currentDate.toLocaleDateString()}</p>
-          </div>
-
-          <div class="summary">
-            <h3>Summary</h3>
-            <p><strong>Total Services:</strong> ${periodMaintenance.length}</p>
-            <p><strong>Total Cost:</strong> KSh ${Math.round(totalCost * 130).toLocaleString()}</p>
-            <p><strong>Average Downtime:</strong> ${avgDowntime.toFixed(1)} hours</p>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Description</th>
-                <th>Cost (KSh)</th>
-                <th>Status</th>
-                <th>Downtime (hrs)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${periodMaintenance.map(m => `
-                <tr>
-                  <td>${new Date(m.service_date).toLocaleDateString()}</td>
-                  <td>${m.maintenance_type}</td>
-                  <td>${m.description}</td>
-                  <td>${Math.round(m.cost * 130).toLocaleString()}</td>
-                  <td>${m.status}</td>
-                  <td>${m.downtime_hours || 0}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-
-          <button class="no-print" onclick="window.print()" style="margin: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print Report</button>
-        </body>
-      </html>
-    `;
-
-    reportWindow.document.write(reportHtml);
-    reportWindow.document.close();
-  };
-
   const handleScheduleService = async (serviceData: any) => {
     try {
       const maintenanceData = {
@@ -190,7 +104,8 @@ const ServiceManagement = () => {
         cost: serviceData.cost,
         technician: serviceData.technician || null,
         service_provider: serviceData.serviceProvider || null,
-        status: 'pending'
+        status: 'pending',
+        items_purchased: serviceData.itemsPurchased || null
       };
 
       await createMaintenance.mutateAsync(maintenanceData);
@@ -308,9 +223,6 @@ const ServiceManagement = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="text-lg font-bold text-foreground">{record.maintenance_type}</h3>
-                          <Badge className={getStatusColor(record.status) + " border"}>
-                            {record.status}
-                          </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{record.description}</p>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
@@ -321,6 +233,11 @@ const ServiceManagement = () => {
                             <span className="font-medium">Service Date:</span> {new Date(record.service_date).toLocaleDateString()}
                           </div>
                         </div>
+                        {record.items_purchased && (
+                          <div className="mt-2 text-sm">
+                            <span className="font-medium text-muted-foreground">Items:</span> {record.items_purchased}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
@@ -383,24 +300,6 @@ const ServiceManagement = () => {
                           Schedule Service
                         </Button>
                       )}
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="border-blue-400 text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        onClick={() => generateTruckServiceReport(record.truck_id, 'monthly')}
-                      >
-                        <FileText className="w-3 h-3 mr-1" />
-                        Monthly Report
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="border-purple-400 text-foreground hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                        onClick={() => generateTruckServiceReport(record.truck_id, 'annual')}
-                      >
-                        <FileText className="w-3 h-3 mr-1" />
-                        Annual Report
-                      </Button>
                     </div>
                   </div>
                 );

@@ -1,7 +1,8 @@
-
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Truck, Users, Route, AlertTriangle, Settings, Calendar, Loader2, TrendingUp, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Truck, Users, Route, AlertTriangle, Settings, Calendar, Loader2, TrendingUp, MapPin, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTrucks, useTrips, useDrivers, useMaintenance, useFuelRecords } from "@/hooks/useSupabaseData";
 import { useState } from "react";
@@ -14,6 +15,7 @@ const Dashboard = () => {
   const { data: fuelRecords, isLoading: fuelLoading } = useFuelRecords();
 
   const [selectedTruck, setSelectedTruck] = useState<string | null>(null);
+  const [selectedTruckForReport, setSelectedTruckForReport] = useState<string>('all');
 
   const isLoading = trucksLoading || tripsLoading || driversLoading || maintenanceLoading || fuelLoading;
 
@@ -106,6 +108,119 @@ const Dashboard = () => {
     return status === 'expiring-soon' || status === 'non-compliant';
   }).length || 0;
 
+  // Generate maintenance report
+  const generateMaintenanceReport = (period: 'monthly' | 'annual') => {
+    const currentDate = new Date();
+    let startDate: Date;
+
+    if (period === 'monthly') {
+      startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    } else {
+      startDate = new Date(currentDate.getFullYear(), 0, 1);
+    }
+
+    let filteredMaintenance = maintenance?.filter(m => 
+      new Date(m.service_date) >= startDate && new Date(m.service_date) <= currentDate
+    ) || [];
+
+    if (selectedTruckForReport !== 'all') {
+      filteredMaintenance = filteredMaintenance.filter(m => m.truck_id === selectedTruckForReport);
+    }
+
+    const totalCost = filteredMaintenance.reduce((sum, m) => sum + (m.cost || 0), 0);
+    const servicesByType = filteredMaintenance.reduce((acc, m) => {
+      const types = m.maintenance_type.split(', ');
+      types.forEach(type => {
+        if (!acc[type]) acc[type] = { count: 0, cost: 0 };
+        acc[type].count += 1;
+        acc[type].cost += m.cost || 0;
+      });
+      return acc;
+    }, {} as Record<string, { count: number; cost: number }>);
+
+    const reportWindow = window.open('', '_blank');
+    if (!reportWindow) return;
+
+    const truckInfo = selectedTruckForReport === 'all' 
+      ? 'All Trucks' 
+      : trucks?.find(t => t.id === selectedTruckForReport)?.truck_number || 'Unknown Truck';
+
+    const reportHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Maintenance Report - ${period.charAt(0).toUpperCase() + period.slice(1)}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f5f5f5; }
+            .summary { background-color: #f9f9f9; padding: 15px; margin: 20px 0; }
+            .service-type { background-color: #e8f4fd; padding: 10px; margin: 10px 0; border-radius: 5px; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Approved Logistics Limited</h1>
+            <h2>Maintenance Report - ${period.charAt(0).toUpperCase() + period.slice(1)}</h2>
+            <p><strong>Truck(s):</strong> ${truckInfo}</p>
+            <p><strong>Period:</strong> ${startDate.toLocaleDateString()} - ${currentDate.toLocaleDateString()}</p>
+          </div>
+
+          <div class="summary">
+            <h3>Summary</h3>
+            <p><strong>Total Services:</strong> ${filteredMaintenance.length}</p>
+            <p><strong>Total Cost:</strong> KSh ${Math.round(totalCost * 130).toLocaleString()}</p>
+            <p><strong>Service Types:</strong> ${Object.keys(servicesByType).length}</p>
+          </div>
+
+          <div class="service-types">
+            <h3>Services by Type</h3>
+            ${Object.entries(servicesByType).map(([type, data]) => `
+              <div class="service-type">
+                <strong>${type}:</strong> ${data.count} services, Total Cost: KSh ${Math.round(data.cost * 130).toLocaleString()}
+              </div>
+            `).join('')}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Truck</th>
+                <th>Service Type</th>
+                <th>Description</th>
+                <th>Cost (KSh)</th>
+                <th>Provider</th>
+                <th>Items Purchased</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredMaintenance.map(m => `
+                <tr>
+                  <td>${new Date(m.service_date).toLocaleDateString()}</td>
+                  <td>${m.trucks?.truck_number || 'N/A'}</td>
+                  <td>${m.maintenance_type}</td>
+                  <td>${m.description}</td>
+                  <td>${Math.round(m.cost * 130).toLocaleString()}</td>
+                  <td>${m.service_provider || 'N/A'}</td>
+                  <td>${m.items_purchased || 'None'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <button class="no-print" onclick="window.print()" style="margin: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print Report</button>
+        </body>
+      </html>
+    `;
+
+    reportWindow.document.write(reportHtml);
+    reportWindow.document.close();
+  };
+
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
@@ -169,6 +284,54 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Maintenance Reports Section */}
+        <Card className="border-2 border-green-400/50 dark:border-green-600/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Maintenance Reports
+            </CardTitle>
+            <CardDescription>Generate detailed maintenance reports for trucks</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+              <div className="flex-1">
+                <Label className="text-sm font-medium mb-2 block">Select Truck</Label>
+                <Select value={selectedTruckForReport} onValueChange={setSelectedTruckForReport}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose truck" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Trucks</SelectItem>
+                    {trucks?.map(truck => (
+                      <SelectItem key={truck.id} value={truck.id}>
+                        {truck.truck_number} - {truck.make} {truck.model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  onClick={() => generateMaintenanceReport('monthly')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Monthly Report
+                </Button>
+                <Button
+                  onClick={() => generateMaintenanceReport('annual')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Annual Report
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Monthly Truck Performance Analytics */}
         <Card className="border-2 border-blue-400/50 dark:border-blue-600/50">
