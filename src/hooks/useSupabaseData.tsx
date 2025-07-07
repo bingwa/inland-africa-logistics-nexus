@@ -285,7 +285,10 @@ export const useCreateMaintenance = () => {
       const { data, error } = await supabase
         .from("maintenance")
         .insert(newMaintenance)
-        .select()
+        .select(`
+          *,
+          trucks(truck_number, make, model)
+        `)
         .single();
       if (error) throw error;
       return data;
