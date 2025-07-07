@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -188,16 +187,35 @@ export const useCreateTrip = () => {
 };
 
 export const useUpdateTripStatus = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const updateData: any = { 
+        status,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Set actual departure time when starting a trip
+      if (status === 'in_progress') {
+        updateData.actual_departure = new Date().toISOString();
+      }
+      
+      // Set actual arrival time when completing a trip
+      if (status === 'completed') {
+        updateData.actual_arrival = new Date().toISOString();
+      }
+
       const { data, error } = await supabase
         .from("trips")
-        .update({ status })
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
       if (error) throw error;
       return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
     },
   });
 };

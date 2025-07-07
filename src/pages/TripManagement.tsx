@@ -1,4 +1,3 @@
-
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { TripDetailsModal } from "@/components/TripDetailsModal";
 import { LiveTripTracker } from "@/components/LiveTripTracker";
 import { FilterExportBar } from "@/components/FilterExportBar";
 import { useToast } from "@/hooks/use-toast";
+import { TripActionDialog } from "@/components/TripActionDialog";
 
 const TripManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,6 +18,17 @@ const TripManagement = () => {
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
   const [trackingTrip, setTrackingTrip] = useState<any>(null);
   const [filters, setFilters] = useState<any>({});
+  const [actionDialog, setActionDialog] = useState<{
+    isOpen: boolean;
+    action: 'start' | 'complete';
+    tripId: string;
+    tripNumber: string;
+  }>({
+    isOpen: false,
+    action: 'start',
+    tripId: '',
+    tripNumber: ''
+  });
   const { data: trips, isLoading, error } = useTrips();
   const updateTripStatus = useUpdateTripStatus();
   const { toast } = useToast();
@@ -54,8 +65,18 @@ const TripManagement = () => {
   const handleStatusUpdate = async (tripId: string, newStatus: string) => {
     try {
       await updateTripStatus.mutateAsync({ id: tripId, status: newStatus });
+      toast({
+        title: "Success",
+        description: `Trip status updated to ${newStatus.replace('_', ' ')}`,
+      });
+      setActionDialog({ isOpen: false, action: 'start', tripId: '', tripNumber: '' });
     } catch (error) {
       console.error('Failed to update trip status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update trip status. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -73,6 +94,20 @@ const TripManagement = () => {
 
   const handleExport = (format: string) => {
     console.log(`Exporting trips in ${format} format`);
+  };
+
+  const handleTripAction = (trip: any, action: 'start' | 'complete') => {
+    setActionDialog({
+      isOpen: true,
+      action,
+      tripId: trip.id,
+      tripNumber: trip.trip_number
+    });
+  };
+
+  const confirmTripAction = () => {
+    const newStatus = actionDialog.action === 'start' ? 'in_progress' : 'completed';
+    handleStatusUpdate(actionDialog.tripId, newStatus);
   };
 
   // Apply filters
@@ -279,7 +314,8 @@ const TripManagement = () => {
                         <Button 
                           size="sm" 
                           className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => handleStatusUpdate(trip.id, 'completed')}
+                          onClick={() => handleTripAction(trip, 'complete')}
+                          disabled={updateTripStatus.isPending}
                         >
                           Complete Trip
                         </Button>
@@ -288,7 +324,8 @@ const TripManagement = () => {
                         <Button 
                           size="sm" 
                           className="bg-blue-600 hover:bg-blue-700 text-white"
-                          onClick={() => handleStatusUpdate(trip.id, 'in_progress')}
+                          onClick={() => handleTripAction(trip, 'start')}
+                          disabled={updateTripStatus.isPending}
                         >
                           Start Trip
                         </Button>
@@ -324,6 +361,15 @@ const TripManagement = () => {
             onClose={() => setTrackingTrip(null)}
           />
         )}
+
+        <TripActionDialog
+          isOpen={actionDialog.isOpen}
+          onClose={() => setActionDialog({ isOpen: false, action: 'start', tripId: '', tripNumber: '' })}
+          onConfirm={confirmTripAction}
+          action={actionDialog.action}
+          tripNumber={actionDialog.tripNumber}
+          isLoading={updateTripStatus.isPending}
+        />
       </div>
     </Layout>
   );
