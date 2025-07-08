@@ -112,6 +112,75 @@ const ServiceManagement = () => {
     }
   };
 
+  const printMaintenanceReport = (record: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const reportContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Maintenance Report - ${record.maintenance_type}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            .section { margin-bottom: 20px; }
+            .label { font-weight: bold; color: #333; }
+            .value { margin-left: 10px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Maintenance Service Report</h1>
+            <p>Generated on ${new Date().toLocaleDateString()}</p>
+          </div>
+          
+          <div class="section">
+            <h2>${record.maintenance_type}</h2>
+            <p><span class="label">Description:</span><span class="value">${record.description}</span></p>
+          </div>
+
+          <div class="grid">
+            <div class="section">
+              <h3>Vehicle Information</h3>
+              <p><span class="label">Truck:</span><span class="value">${record.trucks?.truck_number || 'N/A'}</span></p>
+              <p><span class="label">Make/Model:</span><span class="value">${record.trucks?.make || ''} ${record.trucks?.model || ''}</span></p>
+            </div>
+
+            <div class="section">
+              <h3>Service Details</h3>
+              <p><span class="label">Service Date:</span><span class="value">${new Date(record.service_date).toLocaleDateString()}</span></p>
+              <p><span class="label">Technician:</span><span class="value">${record.technician || 'N/A'}</span></p>
+              <p><span class="label">Service Provider:</span><span class="value">${record.service_provider || 'N/A'}</span></p>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Cost Information</h3>
+            <p><span class="label">Total Cost:</span><span class="value">KSh ${Math.round(record.cost * 130).toLocaleString()}</span></p>
+            ${record.items_purchased ? `<p><span class="label">Items Purchased:</span><span class="value">${record.items_purchased}</span></p>` : ''}
+          </div>
+
+          ${record.next_service_date ? `
+          <div class="section">
+            <h3>Next Service</h3>
+            <p><span class="label">Next Service Date:</span><span class="value">${new Date(record.next_service_date).toLocaleDateString()}</span></p>
+          </div>
+          ` : ''}
+
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(reportContent);
+    printWindow.document.close();
+  };
+
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
@@ -278,7 +347,7 @@ const ServiceManagement = () => {
                       size="sm" 
                       variant="outline" 
                       className="border-blue-400 text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                      onClick={() => console.log('Print report for:', record.id)}
+                      onClick={() => printMaintenanceReport(record)}
                     >
                       Print Report
                     </Button>

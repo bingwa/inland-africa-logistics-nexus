@@ -271,7 +271,8 @@ export const useOngoingMaintenance = () => {
           *,
           trucks(truck_number, make, model)
         `)
-        .in("status", ["pending", "in_progress"]);
+        .neq("status", "completed")
+        .order("service_date", { ascending: true });
       if (error) throw error;
       return data;
     },
