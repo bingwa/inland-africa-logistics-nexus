@@ -38,14 +38,9 @@ export const MaintenanceDetailsModal: React.FC<MaintenanceDetailsModalProps> = (
 
         <div className="space-y-6">
           {/* Header Info */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-xl font-bold text-foreground">{record.maintenance_type}</h3>
-              <p className="text-muted-foreground">{record.description}</p>
-            </div>
-            <Badge className={getStatusColor(record.status) + " border"}>
-              {record.status}
-            </Badge>
+          <div>
+            <h3 className="text-xl font-bold text-foreground">{record.maintenance_type}</h3>
+            <p className="text-muted-foreground">{record.description}</p>
           </div>
 
           {/* Key Information */}

@@ -274,16 +274,14 @@ const ServiceManagement = () => {
                         Complete Service
                       </Button>
                     )}
-                    {record.status === 'pending' && (
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="border-green-400 text-foreground hover:bg-green-50 dark:hover:bg-green-900/20"
-                        onClick={() => setShowScheduleModal(true)}
-                      >
-                        Schedule Service
-                      </Button>
-                    )}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-blue-400 text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      onClick={() => console.log('Print report for:', record.id)}
+                    >
+                      Print Report
+                    </Button>
                   </div>
                 </div>
               ))}

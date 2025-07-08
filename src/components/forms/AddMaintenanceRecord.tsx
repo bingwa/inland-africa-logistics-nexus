@@ -172,6 +172,7 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
                     selected={serviceDate}
                     onSelect={setServiceDate}
                     initialFocus
+                    disabled={(date) => date < new Date("1900-01-01")}
                   />
                 </PopoverContent>
               </Popover>
@@ -290,9 +291,10 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
                   <Input
                     type="number"
                     step="0.01"
-                    value={item.cost}
+                    value={item.cost === 0 ? '' : item.cost}
                     onChange={(e) => updateItem(index, 'cost', parseFloat(e.target.value) || 0)}
                     className="text-sm"
+                    placeholder="0.00"
                   />
                 </div>
                 <div className="flex items-end">
