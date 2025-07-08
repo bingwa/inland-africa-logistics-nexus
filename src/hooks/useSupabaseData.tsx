@@ -271,7 +271,7 @@ export const useOngoingMaintenance = () => {
           *,
           trucks(truck_number, make, model)
         `)
-        .neq("status", "completed")
+        .not("status", "eq", "completed")
         .order("service_date", { ascending: true });
       if (error) throw error;
       return data;

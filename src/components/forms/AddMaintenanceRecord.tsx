@@ -281,9 +281,10 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
                   <Input
                     type="number"
                     min="1"
-                    value={item.quantity}
+                    value={item.quantity === 1 ? '' : item.quantity}
                     onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
                     className="text-sm"
+                    placeholder="1"
                   />
                 </div>
                 <div>
