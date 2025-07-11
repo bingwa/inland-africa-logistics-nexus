@@ -11,11 +11,13 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import FleetManagement from "./pages/FleetManagement";
 import ServiceManagement from "./pages/ServiceManagement";
-import TripManagement from "./pages/TripManagement";
+import FuelManagement from "./pages/FuelManagement";
+import ComplianceManagement from "./pages/ComplianceManagement";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import { Layout } from "@/components/Layout";
 
 const queryClient = new QueryClient();
 
@@ -46,12 +48,23 @@ const App = () => (
               } />
               <Route path="/service" element={
                 <ProtectedRoute>
-                  <ServiceManagement />
+                  <Layout>
+                    <ServiceManagement />
+                  </Layout>
                 </ProtectedRoute>
               } />
-              <Route path="/trips" element={
+              <Route path="/fuel" element={
                 <ProtectedRoute>
-                  <TripManagement />
+                  <Layout>
+                    <FuelManagement />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/compliance" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ComplianceManagement />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/reports" element={
