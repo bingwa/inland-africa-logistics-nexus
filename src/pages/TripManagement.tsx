@@ -1,9 +1,8 @@
-
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Route, Plus, MapPin, Calendar, User, Truck, Clock, Loader2 } from "lucide-react";
+import { Route, Plus, MapPin, Calendar, User, Truck, Clock, Loader2, Wrench, FileText } from "lucide-react";
 import { useState } from "react";
 import { useTrips, useUpdateTripStatus } from "@/hooks/useSupabaseData";
 import { AddTripForm } from "@/components/forms/AddTripForm";
@@ -11,6 +10,7 @@ import { TripDetailsModal } from "@/components/TripDetailsModal";
 import { LiveTripTracker } from "@/components/LiveTripTracker";
 import { FilterExportBar } from "@/components/FilterExportBar";
 import { useToast } from "@/hooks/use-toast";
+import { TripActionDialog } from "@/components/TripActionDialog";
 
 const TripManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,6 +18,17 @@ const TripManagement = () => {
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
   const [trackingTrip, setTrackingTrip] = useState<any>(null);
   const [filters, setFilters] = useState<any>({});
+  const [actionDialog, setActionDialog] = useState<{
+    isOpen: boolean;
+    action: 'start' | 'complete';
+    tripId: string;
+    tripNumber: string;
+  }>({
+    isOpen: false,
+    action: 'start',
+    tripId: '',
+    tripNumber: ''
+  });
   const { data: trips, isLoading, error } = useTrips();
   const updateTripStatus = useUpdateTripStatus();
   const { toast } = useToast();
@@ -54,8 +65,18 @@ const TripManagement = () => {
   const handleStatusUpdate = async (tripId: string, newStatus: string) => {
     try {
       await updateTripStatus.mutateAsync({ id: tripId, status: newStatus });
+      toast({
+        title: "Success",
+        description: `Trip status updated to ${newStatus.replace('_', ' ')}`,
+      });
+      setActionDialog({ isOpen: false, action: 'start', tripId: '', tripNumber: '' });
     } catch (error) {
       console.error('Failed to update trip status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update trip status. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -73,6 +94,148 @@ const TripManagement = () => {
 
   const handleExport = (format: string) => {
     console.log(`Exporting trips in ${format} format`);
+  };
+
+  const handleTripAction = (trip: any, action: 'start' | 'complete') => {
+    setActionDialog({
+      isOpen: true,
+      action,
+      tripId: trip.id,
+      tripNumber: trip.trip_number
+    });
+  };
+
+  const confirmTripAction = () => {
+    const newStatus = actionDialog.action === 'start' ? 'in_progress' : 'completed';
+    handleStatusUpdate(actionDialog.tripId, newStatus);
+  };
+
+  const generateTripReport = (trip: any) => {
+    const reportWindow = window.open('', '_blank');
+    if (!reportWindow) return;
+
+    const actualDuration = trip.actual_departure && trip.actual_arrival 
+      ? Math.round((new Date(trip.actual_arrival).getTime() - new Date(trip.actual_departure).getTime()) / (1000 * 60 * 60 * 24 * 10)) / 10
+      : 'N/A';
+
+    const reportHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Trip Report - ${trip.trip_number}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 20px; }
+            .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+            .row { display: flex; justify-content: space-between; margin: 10px 0; }
+            .label { font-weight: bold; }
+            .status { padding: 5px 10px; border-radius: 5px; background-color: #d4edda; color: #155724; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Approved Logistics Limited</h1>
+            <h2>Trip Completion Report</h2>
+            <p><strong>Trip Number:</strong> ${trip.trip_number}</p>
+            <p><strong>Status:</strong> <span class="status">COMPLETED</span></p>
+          </div>
+
+          <div class="section">
+            <h3>Trip Details</h3>
+            <div class="row">
+              <span class="label">Origin:</span>
+              <span>${trip.origin}</span>
+            </div>
+            <div class="row">
+              <span class="label">Destination:</span>
+              <span>${trip.destination}</span>
+            </div>
+            <div class="row">
+              <span class="label">Distance:</span>
+              <span>${trip.distance_km || 0} km</span>
+            </div>
+            <div class="row">
+              <span class="label">Cargo Value:</span>
+              <span>KSh ${(trip.cargo_value_usd * 130)?.toLocaleString() || 'N/A'}</span>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Vehicle & Driver</h3>
+            <div class="row">
+              <span class="label">Truck:</span>
+              <span>${trip.trucks?.truck_number || 'N/A'} - ${trip.trucks?.make || ''} ${trip.trucks?.model || ''}</span>
+            </div>
+            <div class="row">
+              <span class="label">Driver:</span>
+              <span>${trip.drivers?.full_name || 'N/A'}</span>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Timeline</h3>
+            <div class="row">
+              <span class="label">Planned Departure:</span>
+              <span>${new Date(trip.planned_departure).toLocaleString()}</span>
+            </div>
+            <div class="row">
+              <span class="label">Actual Departure:</span>
+              <span>${trip.actual_departure ? new Date(trip.actual_departure).toLocaleString() : 'N/A'}</span>
+            </div>
+            <div class="row">
+              <span class="label">Planned Arrival:</span>
+              <span>${new Date(trip.planned_arrival).toLocaleString()}</span>
+            </div>
+            <div class="row">
+              <span class="label">Actual Arrival:</span>
+              <span>${trip.actual_arrival ? new Date(trip.actual_arrival).toLocaleString() : 'N/A'}</span>
+            </div>
+            <div class="row">
+              <span class="label">Trip Duration:</span>
+              <span>${actualDuration} days</span>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Costs & Expenses</h3>
+            <div class="row">
+              <span class="label">Fuel Cost:</span>
+              <span>KSh ${trip.fuel_cost?.toLocaleString() || '0'}</span>
+            </div>
+            <div class="row">
+              <span class="label">Toll Cost:</span>
+              <span>KSh ${trip.toll_cost?.toLocaleString() || '0'}</span>
+            </div>
+            <div class="row">
+              <span class="label">Wear & Tear:</span>
+              <span>KSh ${trip.estimated_wear_tear_ksh?.toLocaleString() || '0'}</span>
+            </div>
+            <div class="row">
+              <span class="label">Other Expenses:</span>
+              <span>KSh ${trip.other_expenses?.toLocaleString() || '0'}</span>
+            </div>
+          </div>
+
+          ${trip.notes ? `
+          <div class="section">
+            <h3>Notes</h3>
+            <p>${trip.notes}</p>
+          </div>
+          ` : ''}
+
+          <div class="section">
+            <p><strong>Report Generated:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>Generated by:</strong> Approved Logistics Management System</p>
+          </div>
+
+          <button class="no-print" onclick="window.print()" style="margin: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print Report</button>
+        </body>
+      </html>
+    `;
+
+    reportWindow.document.write(reportHtml);
+    reportWindow.document.close();
   };
 
   // Apply filters
@@ -215,7 +378,7 @@ const TripManagement = () => {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
                         <div>
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Truck className="w-4 h-4" />
@@ -239,6 +402,15 @@ const TripManagement = () => {
                         </div>
                         <div>
                           <div className="flex items-center gap-1 text-muted-foreground">
+                            <Wrench className="w-4 h-4" />
+                            <span>Wear & Tear</span>
+                          </div>
+                          <p className="font-medium text-foreground">
+                            KSh {trip.estimated_wear_tear_ksh?.toLocaleString() || 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1 text-muted-foreground">
                             <Calendar className="w-4 h-4" />
                             <span>Planned Arrival</span>
                           </div>
@@ -258,19 +430,32 @@ const TripManagement = () => {
                       >
                         View Details
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="border-blue-400 text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        onClick={() => handleTrackLive(trip)}
-                      >
-                        Track Live
-                      </Button>
+                      {trip.status === 'completed' ? (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-green-400 text-foreground hover:bg-green-50 dark:hover:bg-green-900/20"
+                          onClick={() => generateTripReport(trip)}
+                        >
+                          <FileText className="w-3 h-3 mr-1" />
+                          Show Report
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-blue-400 text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          onClick={() => handleTrackLive(trip)}
+                        >
+                          Track Live
+                        </Button>
+                      )}
                       {trip.status === 'in_progress' && (
                         <Button 
                           size="sm" 
                           className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => handleStatusUpdate(trip.id, 'completed')}
+                          onClick={() => handleTripAction(trip, 'complete')}
+                          disabled={updateTripStatus.isPending}
                         >
                           Complete Trip
                         </Button>
@@ -279,7 +464,8 @@ const TripManagement = () => {
                         <Button 
                           size="sm" 
                           className="bg-blue-600 hover:bg-blue-700 text-white"
-                          onClick={() => handleStatusUpdate(trip.id, 'in_progress')}
+                          onClick={() => handleTripAction(trip, 'start')}
+                          disabled={updateTripStatus.isPending}
                         >
                           Start Trip
                         </Button>
@@ -315,6 +501,15 @@ const TripManagement = () => {
             onClose={() => setTrackingTrip(null)}
           />
         )}
+
+        <TripActionDialog
+          isOpen={actionDialog.isOpen}
+          onClose={() => setActionDialog({ isOpen: false, action: 'start', tripId: '', tripNumber: '' })}
+          onConfirm={confirmTripAction}
+          action={actionDialog.action}
+          tripNumber={actionDialog.tripNumber}
+          isLoading={updateTripStatus.isPending}
+        />
       </div>
     </Layout>
   );
