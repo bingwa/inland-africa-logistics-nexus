@@ -7,60 +7,52 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
-      cargo: {
+      driver_trip_assignments: {
         Row: {
-          cargo_number: string
-          client_contact: string | null
-          client_name: string
-          created_at: string | null
-          delivery_address: string
-          description: string
+          assigned_at: string | null
+          driver_id: string | null
           id: string
-          pickup_address: string
-          special_instructions: string | null
           status: string | null
           trip_id: string | null
-          updated_at: string | null
-          value: number | null
-          weight_kg: number
         }
         Insert: {
-          cargo_number: string
-          client_contact?: string | null
-          client_name: string
-          created_at?: string | null
-          delivery_address: string
-          description: string
+          assigned_at?: string | null
+          driver_id?: string | null
           id?: string
-          pickup_address: string
-          special_instructions?: string | null
           status?: string | null
           trip_id?: string | null
-          updated_at?: string | null
-          value?: number | null
-          weight_kg: number
         }
         Update: {
-          cargo_number?: string
-          client_contact?: string | null
-          client_name?: string
-          created_at?: string | null
-          delivery_address?: string
-          description?: string
+          assigned_at?: string | null
+          driver_id?: string | null
           id?: string
-          pickup_address?: string
-          special_instructions?: string | null
           status?: string | null
           trip_id?: string | null
-          updated_at?: string | null
-          value?: number | null
-          weight_kg?: number
         }
         Relationships: [
           {
-            foreignKeyName: "cargo_trip_id_fkey"
+            foreignKeyName: "driver_trip_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_trip_assignments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "driver_trip_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_trip_assignments_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
@@ -183,6 +175,13 @@ export type Database = {
             foreignKeyName: "fuel_records_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
+            referencedRelation: "driver_trip_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_records_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
             referencedRelation: "trips"
             referencedColumns: ["id"]
           },
@@ -202,10 +201,10 @@ export type Database = {
           description: string
           downtime_hours: number | null
           id: string
+          items_purchased: string | null
           maintenance_type: string
           mileage_at_service: number | null
           next_service_date: string | null
-          parts_used: Json | null
           service_date: string
           service_provider: string | null
           status: string | null
@@ -219,10 +218,10 @@ export type Database = {
           description: string
           downtime_hours?: number | null
           id?: string
+          items_purchased?: string | null
           maintenance_type: string
           mileage_at_service?: number | null
           next_service_date?: string | null
-          parts_used?: Json | null
           service_date: string
           service_provider?: string | null
           status?: string | null
@@ -236,10 +235,10 @@ export type Database = {
           description?: string
           downtime_hours?: number | null
           id?: string
+          items_purchased?: string | null
           maintenance_type?: string
           mileage_at_service?: number | null
           next_service_date?: string | null
-          parts_used?: Json | null
           service_date?: string
           service_provider?: string | null
           status?: string | null
@@ -257,125 +256,59 @@ export type Database = {
           },
         ]
       }
-      parts_usage: {
-        Row: {
-          cost_per_unit: number
-          created_at: string | null
-          id: string
-          maintenance_id: string | null
-          part_id: string | null
-          quantity_used: number
-          total_cost: number
-        }
-        Insert: {
-          cost_per_unit: number
-          created_at?: string | null
-          id?: string
-          maintenance_id?: string | null
-          part_id?: string | null
-          quantity_used: number
-          total_cost: number
-        }
-        Update: {
-          cost_per_unit?: number
-          created_at?: string | null
-          id?: string
-          maintenance_id?: string | null
-          part_id?: string | null
-          quantity_used?: number
-          total_cost?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "parts_usage_maintenance_id_fkey"
-            columns: ["maintenance_id"]
-            isOneToOne: false
-            referencedRelation: "maintenance"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parts_usage_part_id_fkey"
-            columns: ["part_id"]
-            isOneToOne: false
-            referencedRelation: "spare_parts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
+          address: string | null
           created_at: string | null
+          department: string | null
+          email_notifications: boolean | null
+          emergency_contact: string | null
+          employee_id: string | null
           full_name: string | null
           id: string
-          phone: string | null
-          role: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          full_name?: string | null
-          id: string
-          phone?: string | null
-          role?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          full_name?: string | null
-          id?: string
-          phone?: string | null
-          role?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      spare_parts: {
-        Row: {
-          category: string
-          created_at: string | null
-          description: string | null
-          id: string
-          lead_time_days: number | null
+          join_date: string | null
+          license_number: string | null
           location: string | null
-          minimum_stock_level: number | null
-          part_name: string
-          part_number: string
-          quantity_in_stock: number
-          supplier: string | null
-          supplier_rating: number | null
-          unit_price: number
+          phone: string | null
+          push_notifications: boolean | null
+          role: string | null
+          sms_notifications: boolean | null
           updated_at: string | null
         }
         Insert: {
-          category: string
+          address?: string | null
           created_at?: string | null
-          description?: string | null
-          id?: string
-          lead_time_days?: number | null
+          department?: string | null
+          email_notifications?: boolean | null
+          emergency_contact?: string | null
+          employee_id?: string | null
+          full_name?: string | null
+          id: string
+          join_date?: string | null
+          license_number?: string | null
           location?: string | null
-          minimum_stock_level?: number | null
-          part_name: string
-          part_number: string
-          quantity_in_stock?: number
-          supplier?: string | null
-          supplier_rating?: number | null
-          unit_price: number
+          phone?: string | null
+          push_notifications?: boolean | null
+          role?: string | null
+          sms_notifications?: boolean | null
           updated_at?: string | null
         }
         Update: {
-          category?: string
+          address?: string | null
           created_at?: string | null
-          description?: string | null
+          department?: string | null
+          email_notifications?: boolean | null
+          emergency_contact?: string | null
+          employee_id?: string | null
+          full_name?: string | null
           id?: string
-          lead_time_days?: number | null
+          join_date?: string | null
+          license_number?: string | null
           location?: string | null
-          minimum_stock_level?: number | null
-          part_name?: string
-          part_number?: string
-          quantity_in_stock?: number
-          supplier?: string | null
-          supplier_rating?: number | null
-          unit_price?: number
+          phone?: string | null
+          push_notifications?: boolean | null
+          role?: string | null
+          sms_notifications?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
@@ -390,6 +323,7 @@ export type Database = {
           destination: string
           distance_km: number | null
           driver_id: string | null
+          estimated_wear_tear_ksh: number | null
           fuel_cost: number | null
           id: string
           notes: string | null
@@ -412,6 +346,7 @@ export type Database = {
           destination: string
           distance_km?: number | null
           driver_id?: string | null
+          estimated_wear_tear_ksh?: number | null
           fuel_cost?: number | null
           id?: string
           notes?: string | null
@@ -434,6 +369,7 @@ export type Database = {
           destination?: string
           distance_km?: number | null
           driver_id?: string | null
+          estimated_wear_tear_ksh?: number | null
           fuel_cost?: number | null
           id?: string
           notes?: string | null
@@ -464,23 +400,83 @@ export type Database = {
           },
         ]
       }
+      truck_documents: {
+        Row: {
+          created_at: string
+          document_name: string
+          document_type: string
+          expiry_date: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          is_active: boolean
+          mime_type: string | null
+          truck_id: string
+          updated_at: string
+          upload_date: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_name: string
+          document_type: string
+          expiry_date?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_active?: boolean
+          mime_type?: string | null
+          truck_id: string
+          updated_at?: string
+          upload_date?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_name?: string
+          document_type?: string
+          expiry_date?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_active?: boolean
+          mime_type?: string | null
+          truck_id?: string
+          updated_at?: string
+          upload_date?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "truck_documents_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trucks: {
         Row: {
           capacity_tons: number
           created_at: string | null
           fuel_type: string
           id: string
+          insurance_expiry: string | null
           last_gps_lat: number | null
           last_gps_lng: number | null
           last_service_date: string | null
+          last_service_mileage: number | null
           license_plate: string
           make: string
           mileage: number | null
           model: string
           next_service_due: string | null
+          ntsa_expiry: string | null
           purchase_date: string | null
           status: string | null
           telematics_id: string | null
+          tgl_expiry: string | null
           truck_number: string
           updated_at: string | null
           vin: string | null
@@ -491,17 +487,21 @@ export type Database = {
           created_at?: string | null
           fuel_type: string
           id?: string
+          insurance_expiry?: string | null
           last_gps_lat?: number | null
           last_gps_lng?: number | null
           last_service_date?: string | null
+          last_service_mileage?: number | null
           license_plate: string
           make: string
           mileage?: number | null
           model: string
           next_service_due?: string | null
+          ntsa_expiry?: string | null
           purchase_date?: string | null
           status?: string | null
           telematics_id?: string | null
+          tgl_expiry?: string | null
           truck_number: string
           updated_at?: string | null
           vin?: string | null
@@ -512,17 +512,21 @@ export type Database = {
           created_at?: string | null
           fuel_type?: string
           id?: string
+          insurance_expiry?: string | null
           last_gps_lat?: number | null
           last_gps_lng?: number | null
           last_service_date?: string | null
+          last_service_mileage?: number | null
           license_plate?: string
           make?: string
           mileage?: number | null
           model?: string
           next_service_due?: string | null
+          ntsa_expiry?: string | null
           purchase_date?: string | null
           status?: string | null
           telematics_id?: string | null
+          tgl_expiry?: string | null
           truck_number?: string
           updated_at?: string | null
           vin?: string | null
@@ -568,7 +572,52 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      driver_trip_view: {
+        Row: {
+          actual_arrival: string | null
+          actual_departure: string | null
+          assigned_at: string | null
+          assignment_status: string | null
+          cargo_value_usd: number | null
+          created_at: string | null
+          customer_contact: string | null
+          destination: string | null
+          distance_km: number | null
+          driver_id: string | null
+          estimated_wear_tear_ksh: number | null
+          fuel_cost: number | null
+          id: string | null
+          make: string | null
+          model: string | null
+          notes: string | null
+          origin: string | null
+          other_expenses: number | null
+          planned_arrival: string | null
+          planned_departure: string | null
+          status: string | null
+          toll_cost: number | null
+          trip_number: string | null
+          truck_id: string | null
+          truck_number: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never
@@ -582,21 +631,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -614,14 +667,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -637,14 +692,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -660,14 +717,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -675,14 +734,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateTrip, useTrucks, useDrivers } from "@/hooks/useSupabaseData";
 import { X } from "lucide-react";
+import { calculateDistance } from "@/utils/distanceCalculator";
 
 interface AddTripFormProps {
   onClose: () => void;
@@ -23,17 +24,70 @@ interface TripFormData {
   truck_id: string;
   driver_id: string;
   distance_km?: number;
-  cargo_value_usd?: number;
+  cargo_value_ksh?: number;
   customer_contact?: string;
   notes?: string;
+  estimated_wear_tear_ksh?: number;
 }
 
 export const AddTripForm = ({ onClose }: AddTripFormProps) => {
-  const { register, handleSubmit, setValue, reset } = useForm<TripFormData>();
+  const { register, handleSubmit, setValue, watch, reset } = useForm<TripFormData>();
   const createTrip = useCreateTrip();
   const { data: trucks } = useTrucks();
   const { data: drivers } = useDrivers();
   const [isLoading, setIsLoading] = useState(false);
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+
+  // Watch distance, truck selection, origin, and destination for calculations
+  const watchedDistance = watch("distance_km");
+  const watchedTruckId = watch("truck_id");
+  const watchedOrigin = watch("origin");
+  const watchedDestination = watch("destination");
+
+  // Auto-calculate distance when origin and destination are both filled
+  React.useEffect(() => {
+    const calculateDistanceAsync = async () => {
+      if (watchedOrigin && watchedDestination && watchedOrigin.trim() && watchedDestination.trim()) {
+        setIsCalculatingDistance(true);
+        try {
+          const distance = await calculateDistance(watchedOrigin, watchedDestination);
+          setValue("distance_km", distance);
+        } catch (error) {
+          console.error('Error calculating distance:', error);
+          // Fallback to manual entry if calculation fails
+        } finally {
+          setIsCalculatingDistance(false);
+        }
+      }
+    };
+
+    calculateDistanceAsync();
+  }, [watchedOrigin, watchedDestination, setValue]);
+
+  // Calculate wear and tear based on distance and truck type
+  const calculateWearAndTear = (distance: number, truckId: string) => {
+    if (!distance || !truckId) return 0;
+    
+    const selectedTruck = trucks?.find(truck => truck.id === truckId);
+    if (!selectedTruck) return 0;
+
+    // Wear and tear calculation based on truck capacity and distance
+    // Formula: Base rate per km * distance * capacity factor
+    const baseRatePerKm = 12; // KSH per km base rate
+    const capacityFactor = selectedTruck.capacity_tons / 10; // Adjust based on truck size
+    const ageFactor = selectedTruck.year < 2020 ? 1.3 : 1.0; // Older trucks have higher wear
+    
+    const wearAndTear = baseRatePerKm * distance * capacityFactor * ageFactor;
+    return Math.round(wearAndTear);
+  };
+
+  // Auto-calculate wear and tear when distance or truck changes
+  React.useEffect(() => {
+    if (watchedDistance && watchedTruckId) {
+      const wearTear = calculateWearAndTear(Number(watchedDistance), watchedTruckId);
+      setValue("estimated_wear_tear_ksh", wearTear);
+    }
+  }, [watchedDistance, watchedTruckId, setValue, trucks]);
 
   const onSubmit = async (data: TripFormData) => {
     setIsLoading(true);
@@ -47,9 +101,10 @@ export const AddTripForm = ({ onClose }: AddTripFormProps) => {
         truck_id: data.truck_id,
         driver_id: data.driver_id,
         distance_km: data.distance_km,
-        cargo_value_usd: data.cargo_value_usd,
+        cargo_value_usd: data.cargo_value_ksh ? data.cargo_value_ksh / 130 : undefined, // Convert KSH to USD for storage
         customer_contact: data.customer_contact,
         notes: data.notes,
+        estimated_wear_tear_ksh: data.estimated_wear_tear_ksh,
         status: 'planned'
       });
       reset();
@@ -102,13 +157,25 @@ export const AddTripForm = ({ onClose }: AddTripFormProps) => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="distance_km">Distance (km)</Label>
-                <Input
-                  id="distance_km"
-                  type="number"
-                  step="0.1"
-                  {...register("distance_km", { valueAsNumber: true })}
-                  placeholder="e.g., 480.5"
-                />
+                <div className="relative">
+                  <Input
+                    id="distance_km"
+                    type="number"
+                    step="0.1"
+                    {...register("distance_km", { valueAsNumber: true })}
+                    placeholder="Auto-calculated"
+                    className={isCalculatingDistance ? "bg-gray-50 dark:bg-gray-800" : ""}
+                    readOnly={isCalculatingDistance}
+                  />
+                  {isCalculatingDistance && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Distance is automatically calculated based on origin and destination
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="planned_departure">Planned Departure *</Label>
@@ -135,7 +202,7 @@ export const AddTripForm = ({ onClose }: AddTripFormProps) => {
                   <SelectContent>
                     {trucks?.map((truck) => (
                       <SelectItem key={truck.id} value={truck.id}>
-                        {truck.truck_number} - {truck.make} {truck.model}
+                        {truck.truck_number} - {truck.make} {truck.model} ({truck.capacity_tons}T)
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -157,14 +224,28 @@ export const AddTripForm = ({ onClose }: AddTripFormProps) => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cargo_value_usd">Cargo Value (USD)</Label>
+                <Label htmlFor="cargo_value_ksh">Cargo Value (KSH)</Label>
                 <Input
-                  id="cargo_value_usd"
+                  id="cargo_value_ksh"
                   type="number"
                   step="0.01"
-                  {...register("cargo_value_usd", { valueAsNumber: true })}
-                  placeholder="e.g., 15000"
+                  {...register("cargo_value_ksh", { valueAsNumber: true })}
+                  placeholder="e.g., 1950000"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="estimated_wear_tear_ksh">Estimated Wear & Tear (KSH)</Label>
+                <Input
+                  id="estimated_wear_tear_ksh"
+                  type="number"
+                  {...register("estimated_wear_tear_ksh", { valueAsNumber: true })}
+                  placeholder="Auto-calculated"
+                  readOnly
+                  className="bg-gray-50 dark:bg-gray-800"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Calculated based on distance, truck capacity, and age
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="customer_contact">Customer Contact</Label>
@@ -187,7 +268,7 @@ export const AddTripForm = ({ onClose }: AddTripFormProps) => {
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading || isCalculatingDistance}>
                 {isLoading ? "Creating..." : "Create Trip"}
               </Button>
             </div>

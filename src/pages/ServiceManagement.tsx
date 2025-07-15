@@ -1,300 +1,265 @@
 
-import { Layout } from "@/components/Layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Settings, AlertTriangle, CheckCircle, Clock, Plus, Loader2 } from "lucide-react";
-import { useMaintenance, useUpdateMaintenanceStatus } from "@/hooks/useSupabaseData";
-import { ServiceDetailsModal } from "@/components/ServiceDetailsModal";
-import { ScheduleServiceModal } from "@/components/ScheduleServiceModal";
-import { FilterExportBar } from "@/components/FilterExportBar";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Settings, Loader2 } from "lucide-react";
+import { useOngoingMaintenance, useCreateMaintenance, useUpdateMaintenanceStatus, useTrucks, useMaintenanceHistory } from "@/hooks/useSupabaseData";
+import { AddMaintenanceRecord } from "@/components/forms/AddMaintenanceRecord";
+import { MaintenanceDetailsModal } from "@/components/MaintenanceDetailsModal";
+import { ScheduleServiceModal } from "@/components/ScheduleServiceModal";
+import { useToast } from "@/hooks/use-toast";
+import { ServiceMetrics } from "@/components/ServiceMetrics";
+import { ServiceTrends } from "@/components/ServiceTrends";
+import { TruckAnalysisTable } from "@/components/TruckAnalysisTable";
+import { ServiceRecordsList } from "@/components/ServiceRecordsList";
 
 const ServiceManagement = () => {
-  const { data: maintenanceRecords, isLoading, error } = useMaintenance();
-  const updateMaintenanceStatus = useUpdateMaintenanceStatus();
-  const [selectedService, setSelectedService] = useState<any>(null);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<any>({});
+  const [filters, setFilters] = useState({});
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedTruck, setSelectedTruck] = useState<string>("");
+  const [displayedRecordsCount, setDisplayedRecordsCount] = useState(5);
+  const { data: maintenance, isLoading, error } = useOngoingMaintenance();
+  const { data: maintenanceHistory } = useMaintenanceHistory();
+  const { data: trucks } = useTrucks();
+  const createMaintenance = useCreateMaintenance();
+  const updateMaintenanceStatus = useUpdateMaintenanceStatus();
+  const { toast } = useToast();
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Layout>
-        <div className="text-center text-red-600">
-          Error loading maintenance records: {error.message}
-        </div>
-      </Layout>
+      <div className="text-center text-red-600">
+        Error loading maintenance records: {error.message}
+      </div>
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed": return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
-      case "in_progress": return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400";
-      case "scheduled": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
-      case "overdue": return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800/20 dark:text-gray-400";
-    }
+  const allMaintenanceRecords = [...(maintenance || []), ...(maintenanceHistory || [])];
+  
+  const filteredRecords = allMaintenanceRecords?.filter(record => {
+    const matchesSearch = record.maintenance_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         record.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (record.trucks?.truck_number || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTruck = !selectedTruck || record.truck_id === selectedTruck;
+    return matchesSearch && matchesTruck;
+  }) || [];
+
+  const totalServices = allMaintenanceRecords?.length || 0;
+  const pendingServices = allMaintenanceRecords?.filter(record => record.status === 'pending').length || 0;
+  const inProgressServices = allMaintenanceRecords?.filter(record => record.status === 'in_progress').length || 0;
+  const completedServices = allMaintenanceRecords?.filter(record => record.status === 'completed').length || 0;
+  const totalCost = allMaintenanceRecords?.reduce((sum, record) => sum + (record.cost || 0), 0) || 0;
+
+  // Calculate maintenance trends and analytics
+  const getMaintenanceStats = () => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    const thisMonthRecords = allMaintenanceRecords?.filter(record => {
+      const recordDate = new Date(record.service_date);
+      return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
+    }) || [];
+    
+    const lastMonthRecords = allMaintenanceRecords?.filter(record => {
+      const recordDate = new Date(record.service_date);
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+      return recordDate.getMonth() === lastMonth && recordDate.getFullYear() === lastMonthYear;
+    }) || [];
+
+    const thisMonthCost = thisMonthRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
+    const lastMonthCost = lastMonthRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
+    
+    const costTrend = lastMonthCost > 0 ? ((thisMonthCost - lastMonthCost) / lastMonthCost) * 100 : 0;
+    
+    return {
+      thisMonthServices: thisMonthRecords.length,
+      thisMonthCost,
+      lastMonthServices: lastMonthRecords.length,
+      lastMonthCost,
+      costTrend
+    };
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed": return <CheckCircle className="w-4 h-4" />;
-      case "in_progress": return <Settings className="w-4 h-4" />;
-      case "scheduled": return <Clock className="w-4 h-4" />;
-      case "overdue": return <AlertTriangle className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
-    }
+  const getTruckMaintenanceData = () => {
+    return trucks?.map(truck => {
+      const truckRecords = allMaintenanceRecords?.filter(record => record.truck_id === truck.id) || [];
+      const totalCost = truckRecords.reduce((sum, record) => sum + (record.cost || 0), 0);
+      const lastServiceDate = truckRecords
+        .filter(record => record.status === 'completed')
+        .sort((a, b) => new Date(b.service_date).getTime() - new Date(a.service_date).getTime())[0]?.service_date;
+      
+      const upcomingServices = truckRecords.filter(record => record.status === 'pending' || record.status === 'in_progress');
+      
+      // Calculate service health score based on maintenance frequency and cost
+      const averageMonthlyCost = totalCost / Math.max(1, truckRecords.length);
+      const daysSinceLastService = lastServiceDate ? 
+        Math.floor((new Date().getTime() - new Date(lastServiceDate).getTime()) / (1000 * 60 * 60 * 24)) : 365;
+      
+      let healthScore = 100;
+      if (daysSinceLastService > 90) healthScore -= 30;
+      if (daysSinceLastService > 180) healthScore -= 20;
+      if (averageMonthlyCost > 50000) healthScore -= 20; // High maintenance cost
+      if (upcomingServices.length > 2) healthScore -= 15; // Too many pending services
+      
+      return {
+        ...truck,
+        totalMaintenanceCost: totalCost,
+        lastServiceDate,
+        upcomingServices: upcomingServices.length,
+        healthScore: Math.max(0, healthScore),
+        daysSinceLastService,
+        servicesCount: truckRecords.length
+      };
+    }) || [];
   };
 
-  const handleStatusUpdate = async (id: string, status: string) => {
-    await updateMaintenanceStatus.mutateAsync({ id, status });
-  };
+  const stats = getMaintenanceStats();
+  const truckData = getTruckMaintenanceData();
 
-  const handleScheduleService = (serviceData: any) => {
-    console.log('Scheduling service:', serviceData);
-    // This would normally save to the database
-    // For now, we'll just show a success message
-  };
-
-  const handleFilterApply = (newFilters: any) => {
-    setFilters(newFilters);
+  const handleFilterApply = (filters: any) => {
+    setFilters(filters);
   };
 
   const handleExport = (format: string) => {
-    console.log(`Exporting maintenance records in ${format} format`);
+    console.log(`Exporting service records in ${format} format`);
   };
 
-  // Apply filters
-  let filteredRecords = maintenanceRecords || [];
-  
-  if (searchTerm) {
-    filteredRecords = filteredRecords.filter(record =>
-      record.trucks?.truck_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.maintenance_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.technician?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }
+  const handleCompleteService = async (recordId: string) => {
+    try {
+      await updateMaintenanceStatus.mutateAsync({
+        id: recordId,
+        status: 'completed'
+      });
+      
+      toast({
+        title: "Service Completed",
+        description: "Maintenance service has been marked as completed successfully.",
+      });
+    } catch (error) {
+      console.error('Failed to complete service:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete service. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
-  if (filters.status) {
-    filteredRecords = filteredRecords.filter(record => record.status === filters.status);
-  }
+  const handleScheduleService = async (serviceData: any) => {
+    try {
+      const maintenanceData = {
+        truck_id: serviceData.truckId,
+        maintenance_type: serviceData.maintenanceType,
+        description: serviceData.description,
+        service_date: new Date(serviceData.serviceDate).toISOString().split('T')[0],
+        cost: serviceData.cost,
+        technician: serviceData.technician || null,
+        service_provider: serviceData.serviceProvider || null,
+        items_purchased: serviceData.itemsPurchased || null
+      };
 
-  // Calculate statistics
-  const totalServices = maintenanceRecords?.length || 0;
-  const completedServices = maintenanceRecords?.filter(record => record.status === 'completed').length || 0;
-  const inProgressServices = maintenanceRecords?.filter(record => record.status === 'in_progress').length || 0;
-  const scheduledServices = maintenanceRecords?.filter(record => record.status === 'scheduled').length || 0;
+      await createMaintenance.mutateAsync(maintenanceData);
+      
+      toast({
+        title: "Service Scheduled",
+        description: "Maintenance service has been successfully scheduled.",
+      });
+    } catch (error) {
+      console.error('Failed to schedule service:', error);
+      toast({
+        title: "Error",
+        description: "Failed to schedule service. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleLoadMore = () => {
+    setDisplayedRecordsCount(prev => prev + 5);
+  };
 
   return (
-    <Layout>
-      <div className="space-y-4 sm:space-y-6 animate-fade-in p-2 sm:p-4 lg:p-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
-              <Settings className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8" />
-              Service Management
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Track and manage vehicle maintenance and repairs</p>
-          </div>
-          <Button 
-            onClick={() => setShowScheduleModal(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto text-sm"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Schedule Service
-          </Button>
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
+            <Settings className="w-6 h-6 sm:w-8 sm:h-8" />
+            Service Management & Analytics
+          </h1>
+          <p className="text-muted-foreground">Complete fleet maintenance tracking, analytics, and service scheduling</p>
         </div>
+        <Button 
+          className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
+          onClick={() => setShowAddForm(true)}
+        >
+          Schedule New Service
+        </Button>
+      </div>
 
-        {/* Service Statistics */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-          <Card className="bg-card hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-3 sm:p-4 lg:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Services</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{totalServices}</p>
-                </div>
-                <Settings className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-3 sm:p-4 lg:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Scheduled</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-yellow-600">{scheduledServices}</p>
-                </div>
-                <Clock className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-yellow-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-3 sm:p-4 lg:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">In Progress</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600">{inProgressServices}</p>
-                </div>
-                <div className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 bg-blue-500 rounded-full animate-pulse"></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-3 sm:p-4 lg:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Completed</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">{completedServices}</p>
-                </div>
-                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Key Metrics Dashboard */}
+      <ServiceMetrics
+        totalServices={totalServices}
+        pendingServices={pendingServices}
+        inProgressServices={inProgressServices}
+        completedServices={completedServices}
+        totalCost={totalCost}
+      />
 
-        {/* Service Records */}
-        <Card className="border-2 border-yellow-400/50 dark:border-yellow-600/50">
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Service Records</CardTitle>
-            <CardDescription className="text-sm">Recent and upcoming maintenance activities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FilterExportBar
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              onFilterApply={handleFilterApply}
-              onExport={handleExport}
-              filterOptions={{
-                status: ['scheduled', 'in_progress', 'completed'],
-                types: ['repair', 'maintenance', 'inspection']
-              }}
-            />
+      {/* Monthly Trends */}
+      <ServiceTrends stats={stats} truckData={truckData} />
 
-            <div className="space-y-4 mt-6">
-              {filteredRecords.map((record) => (
-                <div key={record.id} className="border-2 border-yellow-300/50 dark:border-yellow-600/50 rounded-lg p-3 sm:p-4 lg:p-6 hover:shadow-md transition-shadow">
-                  <div className="flex flex-col sm:flex-row items-start justify-between mb-4 gap-3">
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(record.status)}
-                      <div>
-                        <h3 className="font-semibold text-foreground text-sm sm:text-base">
-                          {record.trucks?.truck_number || 'Unknown Truck'}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
-                          {record.trucks?.make} {record.trucks?.model}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge className={getStatusColor(record.status) + " border text-xs"}>
-                        {record.status}
-                      </Badge>
-                      <Badge className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 text-xs">
-                        {record.maintenance_type}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Service Type</p>
-                      <p className="font-medium text-foreground text-sm">{record.maintenance_type}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Technician</p>
-                      <p className="font-medium text-foreground text-sm">{record.technician || 'Not assigned'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Cost</p>
-                      <p className="font-medium text-foreground text-sm">KSh {record.cost?.toLocaleString() || '0'}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <p className="text-xs sm:text-sm text-muted-foreground">Description</p>
-                    <p className="font-medium text-foreground text-sm">{record.description}</p>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      <span>Service Date: {new Date(record.service_date).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="border-yellow-400 text-foreground hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-xs"
-                        onClick={() => setSelectedService(record)}
-                      >
-                        View Details
-                      </Button>
-                      {record.status === "scheduled" && (
-                        <Button 
-                          size="sm" 
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                          onClick={() => handleStatusUpdate(record.id, 'in_progress')}
-                        >
-                          Start Service
-                        </Button>
-                      )}
-                      {record.status === "in_progress" && (
-                        <Button 
-                          size="sm" 
-                          className="bg-green-600 hover:bg-green-700 text-white text-xs"
-                          onClick={() => handleStatusUpdate(record.id, 'completed')}
-                        >
-                          Mark Complete
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {(!filteredRecords || filteredRecords.length === 0) && (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  No maintenance records found. Start by scheduling a service.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Truck-wise Service Analysis */}
+      <TruckAnalysisTable truckData={truckData} />
 
-        {selectedService && (
-          <ServiceDetailsModal
-            service={selectedService}
-            onClose={() => setSelectedService(null)}
-            onStatusUpdate={handleStatusUpdate}
-          />
-        )}
+      {/* Service Records */}
+      <ServiceRecordsList
+        filteredRecords={filteredRecords}
+        allMaintenanceRecords={allMaintenanceRecords}
+        trucks={trucks}
+        searchTerm={searchTerm}
+        selectedTruck={selectedTruck}
+        displayedRecordsCount={displayedRecordsCount}
+        onSearchChange={setSearchTerm}
+        onFilterApply={handleFilterApply}
+        onExport={handleExport}
+        onTruckSelect={setSelectedTruck}
+        onLoadMore={handleLoadMore}
+        onViewDetails={setSelectedRecord}
+        onCompleteService={handleCompleteService}
+        updateMaintenanceStatus={updateMaintenanceStatus}
+      />
 
+      {/* Modals */}
+      {showAddForm && (
+        <AddMaintenanceRecord onClose={() => setShowAddForm(false)} />
+      )}
+
+      {selectedRecord && (
+        <MaintenanceDetailsModal
+          record={selectedRecord}
+          onClose={() => setSelectedRecord(null)}
+        />
+      )}
+
+      {showScheduleModal && (
         <ScheduleServiceModal
           isOpen={showScheduleModal}
           onClose={() => setShowScheduleModal(false)}
           onSchedule={handleScheduleService}
         />
-      </div>
-    </Layout>
+      )}
+    </div>
   );
 };
 

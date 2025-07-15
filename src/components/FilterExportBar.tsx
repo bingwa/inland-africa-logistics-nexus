@@ -1,11 +1,9 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Search, Filter, Download, X, Calendar } from "lucide-react";
-import { DatePickerWithRange } from "@/components/ui/date-picker";
+import { Search, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface FilterExportBarProps {
@@ -17,6 +15,7 @@ interface FilterExportBarProps {
     status?: string[];
     types?: string[];
     locations?: string[];
+    make?: string[];
   };
   showDateFilter?: boolean;
 }
@@ -24,47 +23,9 @@ interface FilterExportBarProps {
 export const FilterExportBar: React.FC<FilterExportBarProps> = ({
   searchTerm,
   onSearchChange,
-  onFilterApply,
   onExport,
-  filterOptions = {},
-  showDateFilter = true
 }) => {
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<any>({});
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined
-  });
   const { toast } = useToast();
-
-  const handleFilterChange = (key: string, value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-  };
-
-  const applyFilters = () => {
-    const finalFilters = { ...filters };
-    if (dateRange.from && dateRange.to) {
-      finalFilters.dateRange = dateRange;
-    }
-    onFilterApply(finalFilters);
-    setShowFilters(false);
-    toast({
-      title: "Filters Applied",
-      description: "Data has been filtered according to your criteria.",
-    });
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setDateRange({ from: undefined, to: undefined });
-    onFilterApply({});
-    setShowFilters(false);
-    toast({
-      title: "Filters Cleared",
-      description: "All filters have been removed.",
-    });
-  };
 
   const handleExport = (format: string) => {
     // Create sample data for export
@@ -114,8 +75,6 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
   };
 
   const exportToExcel = (data: any[]) => {
-    // Simulate Excel export
-    const csvContent = exportToCSV(data);
     toast({
       title: "Excel Export",
       description: "Excel export functionality would be implemented here with a proper Excel library.",
@@ -123,7 +82,6 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
   };
 
   const exportToPDF = (data: any[]) => {
-    // Simulate PDF export
     toast({
       title: "PDF Export",
       description: "PDF export functionality would be implemented here with a PDF library.",
@@ -162,7 +120,7 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Search and Action Bar */}
+      {/* Search and Export Bar */}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -174,15 +132,6 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
           />
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 text-sm whitespace-nowrap"
-            size="sm"
-          >
-            <Filter className="w-4 h-4" />
-            <span className="hidden sm:inline">Filter</span>
-          </Button>
           <Select onValueChange={handleExport}>
             <SelectTrigger className="w-[100px] sm:w-[130px] text-sm">
               <Download className="w-4 h-4 mr-1 sm:mr-2" />
@@ -197,99 +146,6 @@ export const FilterExportBar: React.FC<FilterExportBarProps> = ({
           </Select>
         </div>
       </div>
-
-      {/* Filter Panel */}
-      {showFilters && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-semibold">Advanced Filters</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowFilters(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Status Filter */}
-              {filterOptions.status && (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Status</label>
-                  <Select value={filters.status || ''} onValueChange={(value) => handleFilterChange('status', value)}>
-                    <SelectTrigger className="text-sm">
-                      <SelectValue placeholder="All statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All statuses</SelectItem>
-                      {filterOptions.status.map(status => (
-                        <SelectItem key={status} value={status}>
-                          {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Type Filter */}
-              {filterOptions.types && (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Type</label>
-                  <Select value={filters.type || ''} onValueChange={(value) => handleFilterChange('type', value)}>
-                    <SelectTrigger className="text-sm">
-                      <SelectValue placeholder="All types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All types</SelectItem>
-                      {filterOptions.types.map(type => (
-                        <SelectItem key={type} value={type}>
-                          {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Location Filter */}
-              {filterOptions.locations && (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Location</label>
-                  <Select value={filters.location || ''} onValueChange={(value) => handleFilterChange('location', value)}>
-                    <SelectTrigger className="text-sm">
-                      <SelectValue placeholder="All locations" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All locations</SelectItem>
-                      {filterOptions.locations.map(location => (
-                        <SelectItem key={location} value={location}>
-                          {location}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Date Range Filter */}
-              {showDateFilter && (
-                <div className="sm:col-span-2 lg:col-span-3">
-                  <label className="text-sm font-medium mb-2 block">Date Range</label>
-                  <DatePickerWithRange date={dateRange} setDate={setDateRange} />
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={clearFilters} size="sm" className="text-sm">
-                Clear All
-              </Button>
-              <Button onClick={applyFilters} size="sm" className="text-sm">
-                Apply Filters
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

@@ -22,7 +22,7 @@ export const Header = () => {
       <div className="flex items-center gap-4">
         <SidebarTrigger className="lg:hidden" />
         <div className="hidden lg:block">
-          <h1 className="text-xl font-bold text-foreground">Inland Africa Logistics</h1>
+          <h1 className="text-xl font-bold text-foreground">Approved Logistics Limited</h1>
         </div>
       </div>
       

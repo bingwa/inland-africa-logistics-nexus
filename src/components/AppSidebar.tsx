@@ -1,5 +1,4 @@
-
-import { Truck, Calendar, Package, Settings, FileText, Gauge, Route, Box } from "lucide-react";
+import { Home, Truck, Calendar, Settings, Users, BarChart3, Shield } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import {
   Sidebar,
@@ -13,11 +12,11 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 
-const menuItems = [
+const items = [
   {
     title: "Dashboard",
     url: "/",
-    icon: Gauge,
+    icon: Home,
   },
   {
     title: "Fleet Management",
@@ -25,29 +24,29 @@ const menuItems = [
     icon: Truck,
   },
   {
+    title: "Fuel Management", 
+    url: "/fuel",
+    icon: Users,
+  },
+  {
     title: "Service Management",
     url: "/service",
-    icon: Settings,
+    icon: Calendar,
   },
   {
-    title: "Inventory & Parts",
-    url: "/inventory",
-    icon: Package,
-  },
-  {
-    title: "Cargo Management",
-    url: "/cargo",
-    icon: Box,
-  },
-  {
-    title: "Trips & Routes",
-    url: "/trips",
-    icon: Route,
+    title: "Compliance Management",
+    url: "/compliance",
+    icon: Shield,
   },
   {
     title: "Reports",
-    url: "/reports",
-    icon: FileText,
+    url: "/reports", 
+    icon: BarChart3,
+  },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: Settings,
   },
 ];
 
@@ -62,7 +61,7 @@ export function AppSidebar() {
             <Truck className="w-6 h-6 text-logistics-primary" />
           </div>
           <div>
-            <h2 className="text-white font-bold text-lg">Inland Africa</h2>
+            <h2 className="text-white font-bold text-lg">Approved Logistics Limited</h2>
             <p className="text-logistics-light text-sm">Logistics System</p>
           </div>
         </div>
@@ -74,7 +73,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 
