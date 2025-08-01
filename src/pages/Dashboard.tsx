@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Truck, Users, Route, AlertTriangle, Settings, Calendar, Loader2, TrendingUp, MapPin, FileText } from "lucide-react";
+import { Truck, Users, Route, AlertTriangle, Settings, Calendar, Loader2, TrendingUp, MapPin, FileText, Fuel, DollarSign, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTrucks, useTrips, useDrivers, useMaintenance, useFuelRecords } from "@/hooks/useSupabaseData";
 import { useState } from "react";
@@ -30,16 +30,87 @@ const Dashboard = () => {
     );
   }
 
-  // Fleet Statistics
-  const totalTrucks = trucks?.length || 0;
-  const activeTrucks = trucks?.filter(truck => truck.status === 'active').length || 0;
-  const totalDrivers = drivers?.length || 0;
-  const activeDrivers = drivers?.filter(driver => driver.status === 'active').length || 0;
+  // New Analytics
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
 
-  // Trip Statistics
-  const totalTrips = trips?.length || 0;
-  const completedTrips = trips?.filter(trip => trip.status === 'completed').length || 0;
-  const inTransitTrips = trips?.filter(trip => trip.status === 'in_transit').length || 0;
+  // Fuel consumption analytics per truck
+  const getFuelConsumptionAnalytics = () => {
+    const truckFuelData = trucks?.map(truck => {
+      const truckFuel = fuelRecords?.filter(fuel => 
+        fuel.truck_id === truck.id &&
+        new Date(fuel.fuel_date).getMonth() === currentMonth &&
+        new Date(fuel.fuel_date).getFullYear() === currentYear
+      ) || [];
+      
+      const totalLiters = truckFuel.reduce((sum, fuel) => sum + (fuel.liters || 0), 0);
+      return {
+        truck: truck.truck_number,
+        totalLiters: Math.round(totalLiters)
+      };
+    }).filter(data => data.totalLiters > 0) || [];
+
+    const totalConsumption = truckFuelData.reduce((sum, data) => sum + data.totalLiters, 0);
+    const averageConsumption = truckFuelData.length > 0 ? Math.round(totalConsumption / truckFuelData.length) : 0;
+    
+    return { totalConsumption, averageConsumption, truckCount: truckFuelData.length };
+  };
+
+  // Total maintenance cost per truck
+  const getMaintenanceCostAnalytics = () => {
+    const truckMaintenanceData = trucks?.map(truck => {
+      const truckMaintenance = maintenance?.filter(m => 
+        m.truck_id === truck.id &&
+        new Date(m.service_date).getMonth() === currentMonth &&
+        new Date(m.service_date).getFullYear() === currentYear
+      ) || [];
+      
+      const totalCost = truckMaintenance.reduce((sum, m) => sum + (m.cost || 0), 0);
+      return {
+        truck: truck.truck_number,
+        totalCost: Math.round(totalCost * 130) // Convert to KSh
+      };
+    }).filter(data => data.totalCost > 0) || [];
+
+    const totalMaintenanceCost = truckMaintenanceData.reduce((sum, data) => sum + data.totalCost, 0);
+    const averageMaintenanceCost = truckMaintenanceData.length > 0 ? Math.round(totalMaintenanceCost / truckMaintenanceData.length) : 0;
+    
+    return { totalMaintenanceCost, averageMaintenanceCost, trucksWithMaintenance: truckMaintenanceData.length };
+  };
+
+  // Compliance status analytics
+  const getComplianceAnalytics = () => {
+    const complianceData = trucks?.map(truck => {
+      const ntsaStatus = getCertificateStatus(truck.ntsa_expiry);
+      const insuranceStatus = getCertificateStatus(truck.insurance_expiry);
+      const tglStatus = getCertificateStatus(truck.tgl_expiry);
+      
+      let score = 0;
+      if (ntsaStatus === 'valid') score += 33.33;
+      if (insuranceStatus === 'valid') score += 33.33;
+      if (tglStatus === 'valid') score += 33.34;
+      
+      return {
+        truck: truck.truck_number,
+        score: Math.round(score),
+        status: getComplianceStatus(truck)
+      };
+    }) || [];
+
+    const averageCompliance = complianceData.length > 0 ? 
+      Math.round(complianceData.reduce((sum, data) => sum + data.score, 0) / complianceData.length) : 0;
+    
+    const compliantCount = complianceData.filter(data => data.status === 'compliant').length;
+    
+    return { averageCompliance, compliantCount, totalTrucks: complianceData.length };
+  };
+
+  const fuelAnalytics = getFuelConsumptionAnalytics();
+  const maintenanceAnalytics = getMaintenanceCostAnalytics();
+  const complianceAnalytics = getComplianceAnalytics();
+
+  // Additional statistics for compatibility
+  const activeTrucks = trucks?.filter(truck => truck.status === 'active').length || 0;
   const recentTrips = trips?.slice(0, 5) || [];
 
   // Maintenance Statistics
@@ -48,9 +119,7 @@ const Dashboard = () => {
   const completedMaintenance = maintenance?.filter(m => m.status === 'completed').length || 0;
   const totalMaintenanceCost = maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0;
 
-  // Get current month data for truck analytics
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  // Get current month data for truck analytics (removed duplicate declaration)
 
   const getTruckAnalytics = (truckId: string) => {
     const truckTrips = trips?.filter(trip => 
@@ -232,16 +301,16 @@ const Dashboard = () => {
         </div>
 
         {/* Key Performance Indicators */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="bg-card hover:shadow-lg transition-all duration-300">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Active Trucks</p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-600">{activeTrucks}</p>
-                  <p className="text-xs text-muted-foreground">of {totalTrucks} total</p>
+                  <p className="text-sm font-medium text-muted-foreground">Avg Fuel Consumption</p>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-600">{fuelAnalytics.averageConsumption}L</p>
+                  <p className="text-xs text-muted-foreground">{fuelAnalytics.truckCount} trucks this month</p>
                 </div>
-                <Truck className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
+                <Fuel className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
@@ -250,11 +319,11 @@ const Dashboard = () => {
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Active Drivers</p>
-                  <p className="text-xl sm:text-2xl font-bold text-blue-600">{activeDrivers}</p>
-                  <p className="text-xs text-muted-foreground">of {totalDrivers} total</p>
+                  <p className="text-sm font-medium text-muted-foreground">Avg Maintenance Cost</p>
+                  <p className="text-xl sm:text-2xl font-bold text-orange-600">KSh {maintenanceAnalytics.averageMaintenanceCost.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">{maintenanceAnalytics.trucksWithMaintenance} trucks this month</p>
                 </div>
-                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
               </div>
             </CardContent>
           </Card>
@@ -263,24 +332,11 @@ const Dashboard = () => {
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Trips in Transit</p>
-                  <p className="text-xl sm:text-2xl font-bold text-orange-600">{inTransitTrips}</p>
-                  <p className="text-xs text-muted-foreground">{completedTrips} completed</p>
+                  <p className="text-sm font-medium text-muted-foreground">Fleet Compliance</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-600">{complianceAnalytics.averageCompliance}%</p>
+                  <p className="text-xs text-muted-foreground">{complianceAnalytics.compliantCount}/{complianceAnalytics.totalTrucks} compliant</p>
                 </div>
-                <Route className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Compliance Issues</p>
-                  <p className="text-xl sm:text-2xl font-bold text-red-600">{expiringCerts}</p>
-                  <p className="text-xs text-muted-foreground">{compliantTrucks} compliant</p>
-                </div>
-                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
+                <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
               </div>
             </CardContent>
           </Card>

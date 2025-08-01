@@ -6,10 +6,12 @@ import { FileText, Download, Calendar, Eye, TrendingUp, DollarSign, Settings } f
 import { useState } from "react";
 import { ReportGenerator } from "@/components/ReportGenerator";
 import { CustomReportGenerator } from "@/components/CustomReportGenerator";
+import { SparesReportGenerator } from "@/components/SparesReportGenerator";
 
 const Reports = () => {
   const [selectedReportType, setSelectedReportType] = useState<string | null>(null);
   const [showCustomReport, setShowCustomReport] = useState(false);
+  const [showSparesReport, setShowSparesReport] = useState(false);
 
   const reportCategories = [
     {
@@ -88,18 +90,22 @@ const Reports = () => {
           type: "compliance"
         },
         {
-          name: "Preventive Maintenance Report",
-          description: "Upcoming maintenance schedules and cost projections",
+          name: "Truck Spares Report",
+          description: "Detailed spares purchased for each truck during maintenance",
           lastGenerated: "2024-06-26",
           size: "1.8 MB",
-          type: "maintenance"
+          type: "spares"
         }
       ]
     }
   ];
 
   const handleGenerateReport = (reportType: string) => {
-    setSelectedReportType(reportType);
+    if (reportType === 'spares') {
+      setShowSparesReport(true);
+    } else {
+      setSelectedReportType(reportType);
+    }
   };
 
   const handleViewReport = (reportName: string) => {
@@ -288,6 +294,12 @@ const Reports = () => {
 
         {showCustomReport && (
           <CustomReportGenerator onClose={() => setShowCustomReport(false)} />
+        )}
+
+        {showSparesReport && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <SparesReportGenerator onClose={() => setShowSparesReport(false)} />
+          </div>
         )}
       </div>
     </Layout>
