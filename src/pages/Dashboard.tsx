@@ -30,6 +30,31 @@ const Dashboard = () => {
     );
   }
 
+  // Helper functions (moved up to avoid temporal dead zone)
+  const getCertificateStatus = (expiryDate: string | null) => {
+    if (!expiryDate) return 'missing';
+    
+    const expiry = new Date(expiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return 'expired';
+    if (diffDays <= 30) return 'expiring';
+    return 'valid';
+  };
+
+  const getComplianceStatus = (truck: any) => {
+    const ntsaStatus = getCertificateStatus(truck.ntsa_expiry);
+    const insuranceStatus = getCertificateStatus(truck.insurance_expiry);
+    const tglStatus = getCertificateStatus(truck.tgl_expiry);
+    
+    if ([ntsaStatus, insuranceStatus, tglStatus].includes('expired')) return 'non-compliant';
+    if ([ntsaStatus, insuranceStatus, tglStatus].includes('expiring')) return 'expiring-soon';
+    if ([ntsaStatus, insuranceStatus, tglStatus].includes('missing')) return 'incomplete';
+    return 'compliant';
+  };
+
   // New Analytics
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -105,6 +130,7 @@ const Dashboard = () => {
     return { averageCompliance, compliantCount, totalTrucks: complianceData.length };
   };
 
+  // Calculate analytics
   const fuelAnalytics = getFuelConsumptionAnalytics();
   const maintenanceAnalytics = getMaintenanceCostAnalytics();
   const complianceAnalytics = getComplianceAnalytics();
@@ -119,8 +145,7 @@ const Dashboard = () => {
   const completedMaintenance = maintenance?.filter(m => m.status === 'completed').length || 0;
   const totalMaintenanceCost = maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0;
 
-  // Get current month data for truck analytics (removed duplicate declaration)
-
+  // Get current month data for truck analytics  
   const getTruckAnalytics = (truckId: string) => {
     const truckTrips = trips?.filter(trip => 
       trip.truck_id === truckId && 
@@ -145,31 +170,6 @@ const Dashboard = () => {
       routes: routes.slice(0, 3), // Show top 3 routes
       completedTrips: truckTrips.filter(trip => trip.status === 'completed').length
     };
-  };
-
-  // Compliance Statistics
-  const getCertificateStatus = (expiryDate: string | null) => {
-    if (!expiryDate) return 'missing';
-    
-    const expiry = new Date(expiryDate);
-    const today = new Date();
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) return 'expired';
-    if (diffDays <= 30) return 'expiring';
-    return 'valid';
-  };
-
-  const getComplianceStatus = (truck: any) => {
-    const ntsaStatus = getCertificateStatus(truck.ntsa_expiry);
-    const insuranceStatus = getCertificateStatus(truck.insurance_expiry);
-    const tglStatus = getCertificateStatus(truck.tgl_expiry);
-    
-    if ([ntsaStatus, insuranceStatus, tglStatus].includes('expired')) return 'non-compliant';
-    if ([ntsaStatus, insuranceStatus, tglStatus].includes('expiring')) return 'expiring-soon';
-    if ([ntsaStatus, insuranceStatus, tglStatus].includes('missing')) return 'incomplete';
-    return 'compliant';
   };
 
   const compliantTrucks = trucks?.filter(truck => getComplianceStatus(truck) === 'compliant').length || 0;
