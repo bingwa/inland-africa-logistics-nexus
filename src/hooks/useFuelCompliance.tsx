@@ -2,64 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 /* ------------------------------------------------------------------------------------------------
- * Fuel reserve helpers
- * ----------------------------------------------------------------------------------------------*/
-
-type FuelReserveStatus = {
-  capacity_litres: number;
-  current_litres: number;
-};
-
-export const useFuelReserveStatus = () => {
-  return useQuery<FuelReserveStatus | null, Error>({
-    queryKey: ["fuel-reserve-status"],
-    queryFn: async () => {
-      // use `as any` to bypass missing generated types for new table
-      const { data, error } = await supabase
-        .from<any, any>("fuel_reserve_status")
-        .select("capacity_litres,current_litres")
-        .single();
-      if (error) throw error;
-      return data as FuelReserveStatus | null;
-    },
-    refetchInterval: 60000,
-  });
-};
-
-type FuelReserveLogInsert = {
-  litres_delta: number;
-  reason?: string;
-};
-
-export const useAddFuelReserveLog = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: FuelReserveLogInsert) => {
-      const { error } = await supabase.from<any, any>("fuel_reserve_log").insert(payload);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["fuel-reserve-status"] });
-      queryClient.invalidateQueries({ queryKey: ["daily-fuel-movement"] });
-    },
-  });
-};
-
-export const useDailyFuelMovement = () => {
-  return useQuery({
-    queryKey: ["daily-fuel-movement"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from<any, any>("v_daily_fuel_movement")
-        .select("day, litres_dispensed, litres_refilled")
-        .order("day", { ascending: true });
-      if (error) throw error;
-      return data as Array<{ day: string; litres_dispensed: number; litres_refilled: number }>;
-    },
-  });
-};
-
-/* ------------------------------------------------------------------------------------------------
  * Compliance helpers
  * ----------------------------------------------------------------------------------------------*/
 
@@ -80,10 +22,19 @@ export const useTruckCompliance = () => {
     queryKey: ["truck-compliance"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from<any, any>("truck_compliance")
-        .select(`*, trucks(truck_number)`);
+        .from("trucks" as any)
+        .select("id, truck_number, ntsa_expiry, insurance_expiry, tgl_expiry");
       if (error) throw error;
-      return data as ComplianceRow[];
+      return data?.map((truck: any) => ({
+        truck_id: truck.id,
+        ntsa_renewal: null,
+        ntsa_expiry: truck.ntsa_expiry,
+        insurance_renewal: null,
+        insurance_expiry: truck.insurance_expiry,
+        tgl_renewal: null,
+        tgl_expiry: truck.tgl_expiry,
+        trucks: { truck_number: truck.truck_number }
+      })) || [];
     },
   });
 };

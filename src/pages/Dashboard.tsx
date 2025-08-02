@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Truck, Users, Route, AlertTriangle, Settings, Calendar, Loader2, TrendingUp, MapPin, FileText, Fuel, DollarSign, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTrucks, useTrips, useDrivers, useMaintenance, useFuelRecords } from "@/hooks/useSupabaseData";
+// import { TruckDetailsModal } from "@/components/TruckDetailsModal";
 import { useState } from "react";
 
 const Dashboard = () => {
@@ -147,28 +148,43 @@ const Dashboard = () => {
 
   // Get current month data for truck analytics  
   const getTruckAnalytics = (truckId: string) => {
-    const truckTrips = trips?.filter(trip => 
-      trip.truck_id === truckId && 
-      new Date(trip.created_at).getMonth() === currentMonth &&
-      new Date(trip.created_at).getFullYear() === currentYear
+    // Get maintenance records for this truck this month
+    const truckMaintenance = maintenance?.filter(record => 
+      record.truck_id === truckId && 
+      new Date(record.service_date).getMonth() === currentMonth &&
+      new Date(record.service_date).getFullYear() === currentYear
     ) || [];
-
-    const truckFuel = fuelRecords?.filter(fuel => 
-      fuel.truck_id === truckId &&
-      new Date(fuel.fuel_date).getMonth() === currentMonth &&
-      new Date(fuel.fuel_date).getFullYear() === currentYear
+    
+    // Get fuel records for this truck this month
+    const truckFuelRecords = fuelRecords?.filter(record => 
+      record.truck_id === truckId && 
+      new Date(record.fuel_date).getMonth() === currentMonth &&
+      new Date(record.fuel_date).getFullYear() === currentYear
     ) || [];
-
-    const totalMileage = truckTrips.reduce((sum, trip) => sum + (trip.distance_km || 0), 0);
-    const totalFuelCost = truckFuel.reduce((sum, fuel) => sum + (fuel.total_cost || 0), 0);
-    const routes = [...new Set(truckTrips.map(trip => `${trip.origin} → ${trip.destination}`))];
-
+    
+    const totalMaintenanceCost = truckMaintenance.reduce((sum, record) => sum + (record.cost || 0), 0);
+    const totalFuelConsumed = truckFuelRecords.reduce((sum, record) => sum + (record.liters || 0), 0);
+    const totalFuelCost = truckFuelRecords.reduce((sum, record) => sum + (record.total_cost || 0), 0);
+    
+    // Calculate average fuel consumption rate (liters per refuel)
+    const avgFuelConsumption = truckFuelRecords.length > 0 ? totalFuelConsumed / truckFuelRecords.length : 0;
+    
+    // Calculate average maintenance spend
+    const avgMaintenanceSpend = truckMaintenance.length > 0 ? totalMaintenanceCost / truckMaintenance.length : 0;
+    
+    // Get truck compliance status
+    const truck = trucks?.find(t => t.id === truckId);
+    const complianceStatus = truck ? getComplianceStatus(truck) : 'unknown';
+    
     return {
-      tripsCount: truckTrips.length,
-      totalMileage: Math.round(totalMileage),
+      serviceCheckups: truckMaintenance.length,
+      totalFuelConsumed: Math.round(totalFuelConsumed),
       totalFuelCost: Math.round(totalFuelCost * 130), // Convert to KSh
-      routes: routes.slice(0, 3), // Show top 3 routes
-      completedTrips: truckTrips.filter(trip => trip.status === 'completed').length
+      totalMaintenanceCost: Math.round(totalMaintenanceCost * 130), // Convert to KSh
+      avgFuelConsumption: Math.round(avgFuelConsumption * 10) / 10, // Round to 1 decimal
+      avgMaintenanceSpend: Math.round(avgMaintenanceSpend * 130), // Convert to KSh
+      fuelRecordsCount: truckFuelRecords.length,
+      complianceStatus
     };
   };
 
@@ -177,6 +193,211 @@ const Dashboard = () => {
     const status = getComplianceStatus(truck);
     return status === 'expiring-soon' || status === 'non-compliant';
   }).length || 0;
+
+  // Generate truck report
+  const generateTruckReport = (truckId: string) => {
+    const truck = trucks?.find(t => t.id === truckId);
+    if (!truck) return;
+
+    const analytics = getTruckAnalytics(truckId);
+    const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    // Get maintenance records with spare parts for this truck this month
+    const truckMaintenance = maintenance?.filter(record => 
+      record.truck_id === truckId && 
+      new Date(record.service_date).getMonth() === new Date().getMonth() &&
+      new Date(record.service_date).getFullYear() === new Date().getFullYear()
+    ) || [];
+
+    // Get fuel records for this truck this month
+    const truckFuelRecords = fuelRecords?.filter(record => 
+      record.truck_id === truckId && 
+      new Date(record.fuel_date).getMonth() === new Date().getMonth() &&
+      new Date(record.fuel_date).getFullYear() === new Date().getFullYear()
+    ) || [];
+
+    const reportWindow = window.open('', '_blank');
+    if (!reportWindow) return;
+
+    const reportHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Truck Performance Report - ${truck.truck_number}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 20px; }
+            .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+            .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+            .metric { background: #f9f9f9; padding: 15px; border-radius: 5px; text-align: center; }
+            .metric h3 { margin: 0 0 10px 0; color: #333; }
+            .metric p { margin: 0; font-size: 18px; font-weight: bold; color: #007bff; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f5f5f5; }
+            .compliance-${analytics.complianceStatus} { color: ${analytics.complianceStatus === 'compliant' ? 'green' : analytics.complianceStatus === 'expiring-soon' ? 'orange' : 'red'}; font-weight: bold; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Approved Logistics Limited</h1>
+            <h2>Truck Performance Report</h2>
+            <p><strong>Truck:</strong> ${truck.truck_number} - ${truck.make} ${truck.model}</p>
+            <p><strong>Report Period:</strong> ${currentMonth}</p>
+            <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
+          </div>
+
+          <div class="section">
+            <h3>Vehicle Information</h3>
+            <div class="metrics">
+              <div class="metric">
+                <h4>License Plate</h4>
+                <p>${truck.license_plate}</p>
+              </div>
+              <div class="metric">
+                <h4>Capacity</h4>
+                <p>${truck.capacity_tons} tons</p>
+              </div>
+              <div class="metric">
+                <h4>Fuel Type</h4>
+                <p>${truck.fuel_type}</p>
+              </div>
+              <div class="metric">
+                <h4>Compliance Status</h4>
+                <p class="compliance-${analytics.complianceStatus}">${analytics.complianceStatus.replace('-', ' ').toUpperCase()}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Monthly Performance Metrics</h3>
+            <div class="metrics">
+              <div class="metric">
+                <h4>Service Checkups</h4>
+                <p>${analytics.serviceCheckups}</p>
+              </div>
+              <div class="metric">
+                <h4>Fuel Consumed</h4>
+                <p>${analytics.totalFuelConsumed}L</p>
+              </div>
+              <div class="metric">
+                <h4>Avg Fuel Consumption</h4>
+                <p>${analytics.avgFuelConsumption}L per refuel</p>
+              </div>
+              <div class="metric">
+                <h4>Total Fuel Cost</h4>
+                <p>KSh ${analytics.totalFuelCost.toLocaleString()}</p>
+              </div>
+              <div class="metric">
+                <h4>Total Maintenance Cost</h4>
+                <p>KSh ${analytics.totalMaintenanceCost.toLocaleString()}</p>
+              </div>
+              <div class="metric">
+                <h4>Avg Service Cost</h4>
+                <p>KSh ${analytics.avgMaintenanceSpend.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+
+          ${truckMaintenance.length > 0 ? `
+          <div class="section">
+            <h3>Service Records (${currentMonth})</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Service Type</th>
+                  <th>Description</th>
+                  <th>Cost (KSh)</th>
+                  <th>Provider</th>
+                  <th>Spares/Items</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${truckMaintenance.map(m => `
+                  <tr>
+                    <td>${new Date(m.service_date).toLocaleDateString()}</td>
+                    <td>${m.maintenance_type}</td>
+                    <td>${m.description}</td>
+                    <td>${Math.round(m.cost * 130).toLocaleString()}</td>
+                    <td>${m.service_provider || 'N/A'}</td>
+                    <td>${m.items_purchased || 'None'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          ` : ''}
+
+          ${truckFuelRecords.length > 0 ? `
+          <div class="section">
+            <h3>Fuel Records (${currentMonth})</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Liters</th>
+                  <th>Cost per Liter (KSh)</th>
+                  <th>Total Cost (KSh)</th>
+                  <th>Station</th>
+                  <th>Odometer</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${truckFuelRecords.map(f => `
+                  <tr>
+                    <td>${new Date(f.fuel_date).toLocaleDateString()}</td>
+                    <td>${f.liters}</td>
+                    <td>${Math.round(f.cost_per_liter * 130)}</td>
+                    <td>${Math.round(f.total_cost * 130).toLocaleString()}</td>
+                    <td>${f.fuel_station || 'N/A'}</td>
+                    <td>${f.odometer_reading || 'N/A'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          ` : ''}
+
+          <div class="section">
+            <h3>Compliance Status Details</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Expiry Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>NTSA Certificate</td>
+                  <td>${truck.ntsa_expiry ? new Date(truck.ntsa_expiry).toLocaleDateString() : 'Not set'}</td>
+                  <td class="compliance-${getCertificateStatus(truck.ntsa_expiry)}">${getCertificateStatus(truck.ntsa_expiry).toUpperCase()}</td>
+                </tr>
+                <tr>
+                  <td>Insurance</td>
+                  <td>${truck.insurance_expiry ? new Date(truck.insurance_expiry).toLocaleDateString() : 'Not set'}</td>
+                  <td class="compliance-${getCertificateStatus(truck.insurance_expiry)}">${getCertificateStatus(truck.insurance_expiry).toUpperCase()}</td>
+                </tr>
+                <tr>
+                  <td>TGL Certificate</td>
+                  <td>${truck.tgl_expiry ? new Date(truck.tgl_expiry).toLocaleDateString() : 'Not set'}</td>
+                  <td class="compliance-${getCertificateStatus(truck.tgl_expiry)}">${getCertificateStatus(truck.tgl_expiry).toUpperCase()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <button class="no-print" onclick="window.print()" style="margin: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print Report</button>
+        </body>
+      </html>
+    `;
+
+    reportWindow.document.write(reportHtml);
+    reportWindow.document.close();
+  };
 
   // Generate maintenance report
   const generateMaintenanceReport = (period: 'monthly' | 'annual') => {
@@ -416,41 +637,54 @@ const Dashboard = () => {
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                            <p className="text-sm text-muted-foreground">Trips</p>
-                            <p className="text-xl font-bold text-blue-600">{analytics.tripsCount}</p>
+                            <p className="text-sm text-muted-foreground">Service Checkups</p>
+                            <p className="text-xl font-bold text-blue-600">{analytics.serviceCheckups}</p>
                           </div>
                           <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                            <p className="text-sm text-muted-foreground">Completed</p>
-                            <p className="text-xl font-bold text-green-600">{analytics.completedTrips}</p>
+                            <p className="text-sm text-muted-foreground">Fuel Consumed</p>
+                            <p className="text-xl font-bold text-green-600">{analytics.totalFuelConsumed}L</p>
                           </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-3">
                           <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
-                            <p className="text-sm text-muted-foreground">Mileage</p>
-                            <p className="text-sm font-bold text-purple-600">{analytics.totalMileage.toLocaleString()} km</p>
+                            <p className="text-sm text-muted-foreground">Avg Fuel Rate</p>
+                            <p className="text-sm font-bold text-purple-600">{analytics.avgFuelConsumption}L</p>
                           </div>
                           <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
-                            <p className="text-sm text-muted-foreground">Fuel Cost</p>
-                            <p className="text-sm font-bold text-orange-600">KSh {analytics.totalFuelCost.toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">Avg Service Cost</p>
+                            <p className="text-sm font-bold text-orange-600">KSh {analytics.avgMaintenanceSpend.toLocaleString()}</p>
                           </div>
                         </div>
                         
-                        {analytics.routes.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              Top Routes:
-                            </p>
-                            <div className="space-y-1">
-                              {analytics.routes.map((route, index) => (
-                                <p key={index} className="text-xs text-muted-foreground bg-muted/50 p-1 rounded">
-                                  {route}
-                                </p>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                          <span className="text-sm font-medium">Compliance Status:</span>
+                          <Badge 
+                            variant={analytics.complianceStatus === 'compliant' ? 'default' : 
+                                   analytics.complianceStatus === 'expiring-soon' ? 'secondary' : 'destructive'}
+                            className="text-xs"
+                          >
+                            {analytics.complianceStatus.replace('-', ' ').toUpperCase()}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex gap-2 mt-3">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex-1 text-xs"
+                            onClick={() => setSelectedTruck(truck.id)}
+                          >
+                            View Details
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="flex-1 text-xs bg-green-600 hover:bg-green-700"
+                            onClick={() => generateTruckReport(truck.id)}
+                          >
+                            Print Report
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -592,6 +826,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
       </div>
     </Layout>
   );
