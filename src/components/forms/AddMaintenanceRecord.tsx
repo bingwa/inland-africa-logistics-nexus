@@ -65,7 +65,7 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
     try {
       const maintenanceType = selectedTypes.join(", ");
       const itemsString = itemsPurchased.length > 0 
-        ? itemsPurchased.map(item => `${item.name} (Qty: ${item.quantity}, Cost: KSh ${Math.round(item.cost * 130)})`).join(', ')
+        ? itemsPurchased.map(item => `${item.name} (Qty: ${item.quantity}, Cost: KSh ${item.cost})`).join(', ')
         : null;
       
       await createMaintenance.mutateAsync({

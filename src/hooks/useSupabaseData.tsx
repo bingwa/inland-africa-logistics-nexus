@@ -106,8 +106,8 @@ export const useTruckStatistics = (truckId: string) => {
       const monthlyMileage = tripsData?.reduce((sum, trip) => sum + (trip.distance_km || 0), 0) || 0;
 
       return {
-        monthlyServiceCost: Math.round(monthlyServiceCost * 130), // Convert to KSh
-        monthlyFuelCost: Math.round(monthlyFuelCost * 130), // Convert to KSh
+        monthlyServiceCost: Math.round(monthlyServiceCost), // Already in KSh
+        monthlyFuelCost: Math.round(monthlyFuelCost), // Already in KSh  
         monthlyFuelConsumption: Math.round(monthlyFuelConsumption),
         monthlyMileage: Math.round(monthlyMileage)
       };

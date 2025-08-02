@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Truck, Users, Route, AlertTriangle, Settings, Calendar, Loader2, TrendingUp, MapPin, FileText, Fuel, DollarSign, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTrucks, useTrips, useDrivers, useMaintenance, useFuelRecords } from "@/hooks/useSupabaseData";
-// import { TruckDetailsModal } from "@/components/TruckDetailsModal";
+import { TruckDetailsModal } from "@/components/TruckDetailsModal";
 import { useState } from "react";
 
 const Dashboard = () => {
@@ -16,7 +16,7 @@ const Dashboard = () => {
   const { data: maintenance, isLoading: maintenanceLoading } = useMaintenance();
   const { data: fuelRecords, isLoading: fuelLoading } = useFuelRecords();
 
-  const [selectedTruck, setSelectedTruck] = useState<string | null>(null);
+  const [selectedTruck, setSelectedTruck] = useState<any | null>(null);
   const [selectedTruckForReport, setSelectedTruckForReport] = useState<string>('all');
 
   const isLoading = trucksLoading || tripsLoading || driversLoading || maintenanceLoading || fuelLoading;
@@ -94,7 +94,7 @@ const Dashboard = () => {
       const totalCost = truckMaintenance.reduce((sum, m) => sum + (m.cost || 0), 0);
       return {
         truck: truck.truck_number,
-        totalCost: Math.round(totalCost * 130) // Convert to KSh
+        totalCost: Math.round(totalCost) // Already in KSh
       };
     }).filter(data => data.totalCost > 0) || [];
 
@@ -179,10 +179,10 @@ const Dashboard = () => {
     return {
       serviceCheckups: truckMaintenance.length,
       totalFuelConsumed: Math.round(totalFuelConsumed),
-      totalFuelCost: Math.round(totalFuelCost * 130), // Convert to KSh
-      totalMaintenanceCost: Math.round(totalMaintenanceCost * 130), // Convert to KSh
+      totalFuelCost: Math.round(totalFuelCost), // Already in KSh
+      totalMaintenanceCost: Math.round(totalMaintenanceCost), // Already in KSh
       avgFuelConsumption: Math.round(avgFuelConsumption * 10) / 10, // Round to 1 decimal
-      avgMaintenanceSpend: Math.round(avgMaintenanceSpend * 130), // Convert to KSh
+      avgMaintenanceSpend: Math.round(avgMaintenanceSpend), // Already in KSh
       fuelRecordsCount: truckFuelRecords.length,
       complianceStatus
     };
@@ -320,7 +320,7 @@ const Dashboard = () => {
                     <td>${new Date(m.service_date).toLocaleDateString()}</td>
                     <td>${m.maintenance_type}</td>
                     <td>${m.description}</td>
-                    <td>${Math.round(m.cost * 130).toLocaleString()}</td>
+                    <td>${Math.round(m.cost).toLocaleString()}</td>
                     <td>${m.service_provider || 'N/A'}</td>
                     <td>${m.items_purchased || 'None'}</td>
                   </tr>
@@ -349,8 +349,8 @@ const Dashboard = () => {
                   <tr>
                     <td>${new Date(f.fuel_date).toLocaleDateString()}</td>
                     <td>${f.liters}</td>
-                    <td>${Math.round(f.cost_per_liter * 130)}</td>
-                    <td>${Math.round(f.total_cost * 130).toLocaleString()}</td>
+                    <td>${Math.round(f.cost_per_liter).toLocaleString()}</td>
+                    <td>${Math.round(f.total_cost).toLocaleString()}</td>
                     <td>${f.fuel_station || 'N/A'}</td>
                     <td>${f.odometer_reading || 'N/A'}</td>
                   </tr>
@@ -673,7 +673,7 @@ const Dashboard = () => {
                             size="sm" 
                             variant="outline" 
                             className="flex-1 text-xs"
-                            onClick={() => setSelectedTruck(truck.id)}
+                            onClick={() => setSelectedTruck(truck)}
                           >
                             View Details
                           </Button>
@@ -828,6 +828,18 @@ const Dashboard = () => {
         </div>
 
       </div>
+
+      {/* Truck Details Modal */}
+      {selectedTruck && (
+        <TruckDetailsModal
+          truck={selectedTruck}
+          onClose={() => setSelectedTruck(null)}
+          onStatusUpdate={async (id: string, status: string) => {
+            // Handle status update logic here
+            setSelectedTruck(null);
+          }}
+        />
+      )}
     </Layout>
   );
 };
