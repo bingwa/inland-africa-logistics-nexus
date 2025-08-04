@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       driver_trip_assignments: {
         Row: {
           assigned_at: string | null
@@ -313,6 +352,62 @@ export type Database = {
         }
         Relationships: []
       }
+      spare_parts: {
+        Row: {
+          created_at: string | null
+          id: string
+          installation_date: string | null
+          maintenance_id: string | null
+          part_category: string | null
+          part_name: string
+          part_number: string | null
+          quantity: number
+          supplier: string | null
+          total_price: number | null
+          unit_price: number | null
+          updated_at: string | null
+          warranty_months: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          installation_date?: string | null
+          maintenance_id?: string | null
+          part_category?: string | null
+          part_name: string
+          part_number?: string | null
+          quantity?: number
+          supplier?: string | null
+          total_price?: number | null
+          unit_price?: number | null
+          updated_at?: string | null
+          warranty_months?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          installation_date?: string | null
+          maintenance_id?: string | null
+          part_category?: string | null
+          part_name?: string
+          part_number?: string | null
+          quantity?: number
+          supplier?: string | null
+          total_price?: number | null
+          unit_price?: number | null
+          updated_at?: string | null
+          warranty_months?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spare_parts_maintenance_id_fkey"
+            columns: ["maintenance_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           actual_arrival: string | null
@@ -534,6 +629,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          is_active: boolean | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string | null
@@ -620,10 +742,38 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_manager_or_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          _action: string
+          _table_name?: string
+          _record_id?: string
+          _old_values?: Json
+          _new_values?: Json
+        }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "driver" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -750,6 +900,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "driver", "user"],
+    },
   },
 } as const
