@@ -109,8 +109,8 @@ const Reports = () => {
   };
 
   const handleViewReport = (reportName: string) => {
-    // For demo purposes, show a message
-    alert(`Viewing ${reportName} - This would open the latest generated report`);
+    // Open the last generated report file
+    window.open(`/reports/${reportName.toLowerCase().replace(/\s+/g, '-')}.pdf`, '_blank');
   };
 
   return (

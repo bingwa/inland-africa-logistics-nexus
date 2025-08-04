@@ -19,11 +19,6 @@ const items = [
     icon: Home,
   },
   {
-    title: "Fleet Management",
-    url: "/fleet",
-    icon: Truck,
-  },
-  {
     title: "Fuel Management", 
     url: "/fuel",
     icon: Users,

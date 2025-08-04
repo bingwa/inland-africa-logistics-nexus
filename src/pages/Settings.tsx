@@ -228,26 +228,6 @@ const Settings = () => {
                   onCheckedChange={(value) => handleSecurityChange('loginNotifications', value)}
                 />
               </div>
-              <Separator />
-
-              <div>
-                <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-                <Select 
-                  value={security.sessionTimeout} 
-                  onValueChange={(value) => handleSecurityChange('sessionTimeout', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                    <SelectItem value="60">1 hour</SelectItem>
-                    <SelectItem value="120">2 hours</SelectItem>
-                    <SelectItem value="0">Never</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="pt-4">
                 <Button variant="outline" className="w-full" onClick={handleChangePassword}>

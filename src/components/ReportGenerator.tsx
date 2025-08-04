@@ -97,15 +97,20 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
     const filteredMaintenance = filterDataByDateAndTruck(maintenance || [], 'service_date');
     const filteredFuel = filterDataByDateAndTruck(fuelRecords || [], 'fuel_date');
 
-    const truckStats = (trucks || []).map(truck => {
+    let trucksToProcess = trucks || [];
+    if (selectedTruck !== 'all') {
+      trucksToProcess = trucksToProcess.filter(truck => truck.id === selectedTruck);
+    }
+
+    const truckStats = trucksToProcess.map(truck => {
       const truckTrips = filteredTrips.filter(t => t.truck_id === truck.id);
       const truckMaintenance = filteredMaintenance.filter(m => m.truck_id === truck.id);
       const truckFuel = filteredFuel.filter(f => f.truck_id === truck.id);
 
       const totalDistance = truckTrips.reduce((sum, t) => sum + (t.distance_km || 0), 0);
-      const totalRevenue = truckTrips.reduce((sum, t) => sum + (t.cargo_value_usd * 130 || 0), 0);
-      const totalMaintenanceCost = truckMaintenance.reduce((sum, m) => sum + (m.cost * 130 || 0), 0);
-      const totalFuelCost = truckFuel.reduce((sum, f) => sum + (f.total_cost * 130 || 0), 0);
+      const totalRevenue = truckTrips.reduce((sum, t) => sum + (t.cargo_value_usd || 0), 0);
+      const totalMaintenanceCost = truckMaintenance.reduce((sum, m) => sum + (m.cost || 0), 0);
+      const totalFuelCost = truckFuel.reduce((sum, f) => sum + (f.total_cost || 0), 0);
       const totalFuelConsumption = truckFuel.reduce((sum, f) => sum + (f.liters || 0), 0);
 
       const operatingCost = totalMaintenanceCost + totalFuelCost;
@@ -127,6 +132,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
     return {
       type: 'Fleet Performance Report',
       period: `${dateRange.from!.toLocaleDateString()} - ${dateRange.to!.toLocaleDateString()}`,
+      selectedTruck: selectedTruck !== 'all' ? trucksToProcess[0]?.truck_number : 'All Trucks',
       truckStats,
       summary: {
         totalTrucks: truckStats.length,
@@ -141,7 +147,12 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
   const generateFuelReport = () => {
     const filteredFuel = filterDataByDateAndTruck(fuelRecords || [], 'fuel_date');
     
-    const truckFuelStats = (trucks || []).map(truck => {
+    let trucksToProcess = trucks || [];
+    if (selectedTruck !== 'all') {
+      trucksToProcess = trucksToProcess.filter(truck => truck.id === selectedTruck);
+    }
+    
+    const truckFuelStats = trucksToProcess.map(truck => {
       const truckFuel = filteredFuel.filter(f => f.truck_id === truck.id);
       const totalLiters = truckFuel.reduce((sum, f) => sum + f.liters, 0);
       const totalCost = truckFuel.reduce((sum, f) => sum + f.total_cost, 0);
@@ -163,6 +174,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
     return {
       type: 'Fuel Consumption Report',
       period: `${dateRange.from!.toLocaleDateString()} - ${dateRange.to!.toLocaleDateString()}`,
+      selectedTruck: selectedTruck !== 'all' ? trucksToProcess[0]?.truck_number : 'All Trucks',
       truckFuelStats,
       summary: {
         totalLiters: truckFuelStats.reduce((sum, s) => sum + s.totalLiters, 0),
@@ -176,7 +188,12 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
   const generateMaintenanceReport = () => {
     const filteredMaintenance = filterDataByDateAndTruck(maintenance || [], 'service_date');
     
-    const truckMaintenanceStats = (trucks || []).map(truck => {
+    let trucksToProcess = trucks || [];
+    if (selectedTruck !== 'all') {
+      trucksToProcess = trucksToProcess.filter(truck => truck.id === selectedTruck);
+    }
+    
+    const truckMaintenanceStats = trucksToProcess.map(truck => {
       const truckMaintenance = filteredMaintenance.filter(m => m.truck_id === truck.id);
       const totalCost = truckMaintenance.reduce((sum, m) => sum + (m.cost || 0), 0);
       const completedServices = truckMaintenance.filter(m => m.status === 'completed').length;
@@ -197,6 +214,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
     return {
       type: 'Maintenance Analysis Report',
       period: `${dateRange.from!.toLocaleDateString()} - ${dateRange.to!.toLocaleDateString()}`,
+      selectedTruck: selectedTruck !== 'all' ? trucksToProcess[0]?.truck_number : 'All Trucks',
       truckMaintenanceStats,
       summary: {
         totalCost: truckMaintenanceStats.reduce((sum, s) => sum + s.totalCost, 0),
