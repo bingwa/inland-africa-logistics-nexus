@@ -363,35 +363,7 @@ export const TruckDetailsModal: React.FC<TruckDetailsModalProps> = ({
             </Card>
           )}
 
-          {/* Location Information */}
-          {(truck.last_gps_lat && truck.last_gps_lng) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Location Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-red-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Last Known Location</p>
-                    <p className="font-semibold">
-                      {truck.last_gps_lat.toFixed(6)}, {truck.last_gps_lng.toFixed(6)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="flex gap-2 pt-4 border-t">
-            <Button 
-              onClick={() => handleStatusUpdate(truck.status === 'active' ? 'maintenance' : 'active')}
-              disabled={isUpdating}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              {truck.status === 'active' ? 'Set Maintenance' : 'Set Active'}
-            </Button>
+          <div className="flex justify-end pt-4 border-t">
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>

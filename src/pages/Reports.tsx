@@ -15,34 +15,6 @@ const Reports = () => {
 
   const reportCategories = [
     {
-      title: "Fleet Reports",
-      description: "Vehicle performance, utilization, and maintenance reports",
-      icon: FileText,
-      reports: [
-        {
-          name: "Fleet Performance Summary",
-          description: "Comprehensive fleet performance analysis with profitability insights",
-          lastGenerated: "2024-06-28",
-          size: "2.3 MB",
-          type: "fleet"
-        },
-        {
-          name: "Vehicle Utilization Report",
-          description: "Individual truck performance and utilization metrics",
-          lastGenerated: "2024-06-27",
-          size: "1.8 MB",
-          type: "fleet"
-        },
-        {
-          name: "Maintenance Schedule Report",
-          description: "Upcoming and completed maintenance with cost analysis",
-          lastGenerated: "2024-06-26",
-          size: "1.2 MB",
-          type: "fleet"
-        }
-      ]
-    },
-    {
       title: "Fuel Analytics",
       description: "Fuel consumption, costs, and efficiency analysis",
       icon: DollarSign,
@@ -206,14 +178,6 @@ const Reports = () => {
               >
                 <DollarSign className="w-5 h-5" />
                 <span className="text-sm">Fuel Analysis</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex flex-col items-center gap-2 h-20"
-                onClick={() => handleGenerateReport('fleet')}
-              >
-                <FileText className="w-5 h-5" />
-                <span className="text-sm">Fleet Summary</span>
               </Button>
               <Button 
                 variant="outline" 
