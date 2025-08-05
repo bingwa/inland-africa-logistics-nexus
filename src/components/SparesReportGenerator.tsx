@@ -66,34 +66,43 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
         
         const truckData = sparesByTruck.get(truckId);
         
-        // Parse items purchased - assuming format like "Oil filter x2, Brake pads x1"
+        // Parse items purchased - support multiple formats
+        // Format 1: "Engine oil (Qty: 1, Cost: KSh 650000)"
+        // Format 2: "Oil filter x2, Brake pads x1"
         const items = maintenance.items_purchased.split(',').map(item => item.trim()).filter(item => item);
         
         items.forEach(item => {
-          // Extract quantity if present (e.g., "Oil filter x2" -> quantity: 2, item: "Oil filter")
-          const quantityMatch = item.match(/(.+?)\s*x(\d+)$/i);
           let itemName = item;
           let quantity = 1;
+          let itemCost = 0;
           
-          if (quantityMatch) {
-            itemName = quantityMatch[1].trim();
-            quantity = parseInt(quantityMatch[2]);
+          // Try to parse new format: "Engine oil (Qty: 1, Cost: KSh 650000)"
+          const newFormatMatch = item.match(/(.+?)\s*\(Qty:\s*(\d+),\s*Cost:\s*KSh\s*([\d,]+)\)/i);
+          if (newFormatMatch) {
+            itemName = newFormatMatch[1].trim();
+            quantity = parseInt(newFormatMatch[2]);
+            itemCost = parseFloat(newFormatMatch[3].replace(/,/g, ''));
+          } else {
+            // Try old format: "Oil filter x2"
+            const quantityMatch = item.match(/(.+?)\s*x(\d+)$/i);
+            if (quantityMatch) {
+              itemName = quantityMatch[1].trim();
+              quantity = parseInt(quantityMatch[2]);
+            }
+            // Estimate cost if not provided (divide maintenance cost by number of different items)
+            itemCost = (maintenance.cost || 0) / items.length * quantity;
           }
-          
-          // Estimate cost per item (divide maintenance cost by number of different items)
-          const estimatedCostPerItem = (maintenance.cost || 0) / items.length;
-          const totalItemCost = estimatedCostPerItem * quantity;
           
           truckData.spares.push({
             date: maintenance.service_date,
             itemName,
             quantity,
-            estimatedCost: totalItemCost,
+            estimatedCost: itemCost,
             maintenanceType: maintenance.maintenance_type,
             serviceProvider: maintenance.service_provider || 'N/A'
           });
           
-          truckData.totalCost += totalItemCost;
+          truckData.totalCost += itemCost;
           truckData.totalItems += quantity;
         });
       });
@@ -282,8 +291,8 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
                 <span class="value">${data.summary.totalSpares}</span>
               </div>
               <div class="summary-item">
-                <span class="label">Total Estimated Cost:</span>
-                <span class="value">KSh ${Math.round(data.summary.totalCost * 130).toLocaleString()}</span>
+                <span class="label">Total Cost:</span>
+                <span class="value">KSh ${Math.round(data.summary.totalCost).toLocaleString()}</span>
               </div>
               <div class="summary-item">
                 <span class="label">Maintenance Records:</span>
@@ -296,7 +305,7 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
             <div class="truck-section">
               <div class="truck-header">
                 <span>${truckData.truck.truck_number} - ${truckData.truck.make} ${truckData.truck.model}</span>
-                <span style="float: right;">Total Items: ${truckData.totalItems} | Estimated Cost: KSh ${Math.round(truckData.totalCost * 130).toLocaleString()}</span>
+                <span style="float: right;">Total Items: ${truckData.totalItems} | Cost: KSh ${Math.round(truckData.totalCost).toLocaleString()}</span>
               </div>
               
               <table>
@@ -305,7 +314,7 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
                     <th>Date Purchased</th>
                     <th>Item Name</th>
                     <th>Quantity</th>
-                    <th>Estimated Cost (KSh)</th>
+                    <th>Cost (KSh)</th>
                     <th>Maintenance Type</th>
                     <th>Service Provider</th>
                   </tr>
@@ -316,7 +325,7 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
                       <td>${new Date(spare.date).toLocaleDateString()}</td>
                       <td>${spare.itemName}</td>
                       <td class="quantity-cell">${spare.quantity}</td>
-                      <td class="cost-cell">${Math.round(spare.estimatedCost * 130).toLocaleString()}</td>
+                      <td class="cost-cell">${Math.round(spare.estimatedCost).toLocaleString()}</td>
                       <td>${spare.maintenanceType}</td>
                       <td>${spare.serviceProvider}</td>
                     </tr>
