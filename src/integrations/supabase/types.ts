@@ -244,8 +244,10 @@ export type Database = {
           maintenance_type: string
           mileage_at_service: number | null
           next_service_date: string | null
+          route_taken: string | null
           service_date: string
           service_provider: string | null
+          service_type: string | null
           status: string | null
           technician: string | null
           truck_id: string | null
@@ -261,8 +263,10 @@ export type Database = {
           maintenance_type: string
           mileage_at_service?: number | null
           next_service_date?: string | null
+          route_taken?: string | null
           service_date: string
           service_provider?: string | null
+          service_type?: string | null
           status?: string | null
           technician?: string | null
           truck_id?: string | null
@@ -278,8 +282,10 @@ export type Database = {
           maintenance_type?: string
           mileage_at_service?: number | null
           next_service_date?: string | null
+          route_taken?: string | null
           service_date?: string
           service_provider?: string | null
+          service_type?: string | null
           status?: string | null
           technician?: string | null
           truck_id?: string | null

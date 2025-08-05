@@ -42,9 +42,25 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
         const itemDate = new Date(m.service_date);
         const matchesDate = itemDate >= dateRange.from! && itemDate <= dateRange.to!;
         const matchesTruck = selectedTruck === 'all' || m.truck_id === selectedTruck;
-        const hasItems = m.items_purchased && m.items_purchased.trim() !== '' && m.items_purchased.toLowerCase() !== 'none';
+        const hasItems = m.items_purchased && 
+                        m.items_purchased.trim() !== '' && 
+                        m.items_purchased.toLowerCase() !== 'none' &&
+                        m.items_purchased.toLowerCase() !== 'null';
+        
+        console.log('Filtering maintenance record:', {
+          id: m.id,
+          truck_id: m.truck_id,
+          items_purchased: m.items_purchased,
+          hasItems,
+          matchesDate,
+          matchesTruck
+        });
+        
         return matchesDate && matchesTruck && hasItems;
       }) || [];
+
+      console.log('Total maintenance records:', maintenance?.length);
+      console.log('Filtered maintenance records:', filteredMaintenance.length);
 
       // Group spares by truck
       const sparesByTruck = new Map();
@@ -76,21 +92,26 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
           let quantity = 1;
           let itemCost = 0;
           
+          console.log('Processing item:', item);
+          
           // Try to parse new format: "Engine oil (Qty: 1, Cost: KSh 650000)"
           const newFormatMatch = item.match(/(.+?)\s*\(Qty:\s*(\d+),\s*Cost:\s*KSh\s*([\d,]+)\)/i);
           if (newFormatMatch) {
             itemName = newFormatMatch[1].trim();
             quantity = parseInt(newFormatMatch[2]);
             itemCost = parseFloat(newFormatMatch[3].replace(/,/g, ''));
+            console.log('Parsed new format:', { itemName, quantity, itemCost });
           } else {
             // Try old format: "Oil filter x2"
             const quantityMatch = item.match(/(.+?)\s*x(\d+)$/i);
             if (quantityMatch) {
               itemName = quantityMatch[1].trim();
               quantity = parseInt(quantityMatch[2]);
+              console.log('Parsed old format:', { itemName, quantity });
             }
-            // Estimate cost if not provided (divide maintenance cost by number of different items)
-            itemCost = (maintenance.cost || 0) / items.length * quantity;
+            // Use actual maintenance cost or estimate cost 
+            itemCost = (maintenance.cost || 0) / items.length;
+            console.log('Calculated cost:', itemCost);
           }
           
           truckData.spares.push({
@@ -99,7 +120,9 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
             quantity,
             estimatedCost: itemCost,
             maintenanceType: maintenance.maintenance_type,
-            serviceProvider: maintenance.service_provider || 'N/A'
+            serviceProvider: maintenance.service_provider || 'N/A',
+            serviceType: maintenance.service_type || 'N/A',
+            routeTaken: maintenance.route_taken || 'N/A'
           });
           
           truckData.totalCost += itemCost;
@@ -309,27 +332,31 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
               </div>
               
               <table>
-                <thead>
-                  <tr>
-                    <th>Date Purchased</th>
-                    <th>Item Name</th>
-                    <th>Quantity</th>
-                    <th>Cost (KSh)</th>
-                    <th>Maintenance Type</th>
-                    <th>Service Provider</th>
-                  </tr>
-                </thead>
+                 <thead>
+                   <tr>
+                     <th>Date Purchased</th>
+                     <th>Item Name</th>
+                     <th>Quantity</th>
+                     <th>Cost (KSh)</th>
+                     <th>Maintenance Type</th>
+                     <th>Service Type</th>
+                     <th>Route Taken</th>
+                     <th>Service Provider</th>
+                   </tr>
+                 </thead>
                 <tbody>
-                  ${truckData.spares.map((spare: any) => `
-                    <tr>
-                      <td>${new Date(spare.date).toLocaleDateString()}</td>
-                      <td>${spare.itemName}</td>
-                      <td class="quantity-cell">${spare.quantity}</td>
-                      <td class="cost-cell">${Math.round(spare.estimatedCost).toLocaleString()}</td>
-                      <td>${spare.maintenanceType}</td>
-                      <td>${spare.serviceProvider}</td>
-                    </tr>
-                  `).join('')}
+                   ${truckData.spares.map((spare: any) => `
+                     <tr>
+                       <td>${new Date(spare.date).toLocaleDateString()}</td>
+                       <td>${spare.itemName}</td>
+                       <td class="quantity-cell">${spare.quantity}</td>
+                       <td class="cost-cell">${Math.round(spare.estimatedCost).toLocaleString()}</td>
+                       <td>${spare.maintenanceType}</td>
+                       <td>${spare.serviceType}</td>
+                       <td>${spare.routeTaken}</td>
+                       <td>${spare.serviceProvider}</td>
+                     </tr>
+                   `).join('')}
                 </tbody>
               </table>
             </div>

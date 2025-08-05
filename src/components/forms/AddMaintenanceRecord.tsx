@@ -44,7 +44,9 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
     description: '',
     technician: '',
     cost: '',
-    service_provider: ''
+    service_provider: '',
+    service_type: 'servicing', // servicing or maintenance
+    route_taken: ''
   });
   const { toast } = useToast();
   const { data: trucks } = useTrucks();
@@ -62,6 +64,16 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
       return;
     }
 
+    // Validate route_taken field for maintenance type
+    if (formData.service_type === 'maintenance' && !formData.route_taken.trim()) {
+      toast({
+        title: "Route Required",
+        description: "Route taken is required for maintenance services.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const maintenanceType = selectedTypes.join(", ");
       const itemsString = itemsPurchased.length > 0 
@@ -73,7 +85,9 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
         maintenance_type: maintenanceType,
         service_date: serviceDate.toISOString().split('T')[0],
         cost: parseFloat(formData.cost) || 0,
-        items_purchased: itemsString
+        items_purchased: itemsString,
+        service_type: formData.service_type,
+        route_taken: formData.service_type === 'maintenance' ? formData.route_taken : null
       });
 
       toast({
@@ -178,6 +192,51 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
               </Popover>
             </div>
           </div>
+
+          {/* Service Type Selection */}
+          <div>
+            <Label className="text-sm font-medium">
+              Service Type <span className="text-red-500">*</span>
+            </Label>
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="servicing"
+                  checked={formData.service_type === 'servicing'}
+                  onCheckedChange={() => handleInputChange('service_type', 'servicing')}
+                />
+                <Label htmlFor="servicing" className="text-sm cursor-pointer">
+                  Servicing
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="maintenance"
+                  checked={formData.service_type === 'maintenance'}
+                  onCheckedChange={() => handleInputChange('service_type', 'maintenance')}
+                />
+                <Label htmlFor="maintenance" className="text-sm cursor-pointer">
+                  Maintenance
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          {/* Route Taken - Only show if maintenance is selected */}
+          {formData.service_type === 'maintenance' && (
+            <div>
+              <Label htmlFor="route_taken" className="text-sm font-medium">
+                Route Taken <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="route_taken"
+                placeholder="Enter the route taken for maintenance"
+                value={formData.route_taken}
+                onChange={(e) => handleInputChange('route_taken', e.target.value)}
+                className="text-sm"
+              />
+            </div>
+          )}
 
           <div>
             <Label className="text-sm font-medium">
