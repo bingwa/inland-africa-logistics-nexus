@@ -154,11 +154,24 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
     
     const truckFuelStats = trucksToProcess.map(truck => {
       const truckFuel = filteredFuel.filter(f => f.truck_id === truck.id);
-      const totalLiters = truckFuel.reduce((sum, f) => sum + f.liters, 0);
-      const totalCost = truckFuel.reduce((sum, f) => sum + f.total_cost, 0);
+      const totalLiters = truckFuel.reduce((sum, f) => sum + (f.liters || 0), 0);
+      const totalCost = truckFuel.reduce((sum, f) => sum + (f.total_cost || 0), 0);
       const avgCostPerLiter = totalLiters > 0 ? totalCost / totalLiters : 0;
-      const avgOdometer = truckFuel.length > 0 ? truckFuel.reduce((sum, f) => sum + (f.odometer_reading || 0), 0) / truckFuel.length : 0;
-      const fuelEfficiency = totalLiters > 0 && avgOdometer > 0 ? avgOdometer / totalLiters : 0;
+      
+      // Calculate fuel efficiency based on odometer readings
+      const sortedFuelRecords = truckFuel
+        .filter(f => f.odometer_reading && f.odometer_reading > 0)
+        .sort((a, b) => new Date(a.fuel_date).getTime() - new Date(b.fuel_date).getTime());
+      
+      let fuelEfficiency = 0;
+      if (sortedFuelRecords.length >= 2) {
+        const firstRecord = sortedFuelRecords[0];
+        const lastRecord = sortedFuelRecords[sortedFuelRecords.length - 1];
+        const distanceTraveled = (lastRecord.odometer_reading || 0) - (firstRecord.odometer_reading || 0);
+        if (distanceTraveled > 0 && totalLiters > 0) {
+          fuelEfficiency = distanceTraveled / totalLiters;
+        }
+      }
       
       return {
         truck,
@@ -167,7 +180,14 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
         avgCostPerLiter,
         fuelEfficiency,
         recordCount: truckFuel.length,
-        lastRefill: truckFuel.length > 0 ? Math.max(...truckFuel.map(f => new Date(f.fuel_date).getTime())) : null
+        lastRefill: truckFuel.length > 0 ? new Date(Math.max(...truckFuel.map(f => new Date(f.fuel_date).getTime()))).toLocaleDateString() : 'N/A',
+        fuelRecords: truckFuel.map(f => ({
+          date: new Date(f.fuel_date).toLocaleDateString(),
+          liters: f.liters,
+          cost: f.total_cost,
+          costPerLiter: f.cost_per_liter,
+          odometer: f.odometer_reading || 'N/A'
+        }))
       };
     });
 
@@ -180,7 +200,8 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
         totalLiters: truckFuelStats.reduce((sum, s) => sum + s.totalLiters, 0),
         totalCost: truckFuelStats.reduce((sum, s) => sum + s.totalCost, 0),
         avgCostPerLiter: truckFuelStats.reduce((sum, s) => sum + s.avgCostPerLiter, 0) / (truckFuelStats.length || 1),
-        avgEfficiency: truckFuelStats.reduce((sum, s) => sum + s.fuelEfficiency, 0) / (truckFuelStats.length || 1)
+        avgEfficiency: truckFuelStats.reduce((sum, s) => sum + s.fuelEfficiency, 0) / (truckFuelStats.length || 1),
+        totalRecords: truckFuelStats.reduce((sum, s) => sum + s.recordCount, 0)
       }
     };
   };
@@ -200,6 +221,10 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
       const upcomingServices = truckMaintenance.filter(m => m.status === 'scheduled').length;
       const avgCostPerService = truckMaintenance.length > 0 ? totalCost / truckMaintenance.length : 0;
       
+      // Separate services by type
+      const services = truckMaintenance.filter(m => m.service_type === 'servicing');
+      const maintenanceRecords = truckMaintenance.filter(m => m.service_type === 'maintenance');
+      
       return {
         truck,
         totalCost,
@@ -207,18 +232,32 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
         completedServices,
         upcomingServices,
         avgCostPerService,
-        lastService: truckMaintenance.length > 0 ? Math.max(...truckMaintenance.map(m => new Date(m.service_date).getTime())) : null
+        servicesCount: services.length,
+        maintenanceCount: maintenanceRecords.length,
+        lastService: truckMaintenance.length > 0 ? new Date(Math.max(...truckMaintenance.map(m => new Date(m.service_date).getTime()))).toLocaleDateString() : 'N/A',
+        maintenanceRecords: truckMaintenance.map(m => ({
+          date: new Date(m.service_date).toLocaleDateString(),
+          type: m.service_type || 'maintenance',
+          description: m.description,
+          cost: m.cost,
+          status: m.status,
+          technician: m.technician || 'N/A',
+          routeTaken: m.route_taken || 'N/A',
+          itemsPurchased: m.items_purchased || 'N/A'
+        }))
       };
     });
 
     return {
-      type: 'Maintenance Analysis Report',
+      type: 'Maintenance & Service Report',
       period: `${dateRange.from!.toLocaleDateString()} - ${dateRange.to!.toLocaleDateString()}`,
       selectedTruck: selectedTruck !== 'all' ? trucksToProcess[0]?.truck_number : 'All Trucks',
       truckMaintenanceStats,
       summary: {
         totalCost: truckMaintenanceStats.reduce((sum, s) => sum + s.totalCost, 0),
         totalServices: truckMaintenanceStats.reduce((sum, s) => sum + s.serviceCount, 0),
+        totalServicing: truckMaintenanceStats.reduce((sum, s) => sum + s.servicesCount, 0),
+        totalMaintenance: truckMaintenanceStats.reduce((sum, s) => sum + s.maintenanceCount, 0),
         avgCostPerService: truckMaintenanceStats.reduce((sum, s) => sum + s.avgCostPerService, 0) / (truckMaintenanceStats.length || 1),
         completionRate: truckMaintenanceStats.reduce((sum, s) => sum + s.completedServices, 0) / Math.max(1, truckMaintenanceStats.reduce((sum, s) => sum + s.serviceCount, 0)) * 100
       }
@@ -226,31 +265,57 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
   };
 
   const generateComplianceReport = () => {
-    // Mock compliance data since it's not in the database yet
+    // Use real compliance data from trucks table
     const complianceData = (trucks || []).map(truck => {
-      const ntsa = { status: Math.random() > 0.3 ? 'valid' : 'expired', expiry: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1) };
-      const insurance = { status: Math.random() > 0.2 ? 'valid' : 'expired', expiry: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1) };
-      const tgl = { status: Math.random() > 0.4 ? 'valid' : 'expired', expiry: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1) };
+      const today = new Date();
+      
+      const checkExpiry = (expiryDate: string | null) => {
+        if (!expiryDate) return { status: 'missing', expiry: null, daysLeft: 0 };
+        const expiry = new Date(expiryDate);
+        const daysLeft = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysLeft < 0) return { status: 'expired', expiry, daysLeft };
+        if (daysLeft <= 30) return { status: 'expiring_soon', expiry, daysLeft };
+        return { status: 'valid', expiry, daysLeft };
+      };
+      
+      const ntsa = checkExpiry(truck.ntsa_expiry);
+      const insurance = checkExpiry(truck.insurance_expiry);
+      const tgl = checkExpiry(truck.tgl_expiry);
+      
+      const validDocuments = [ntsa, insurance, tgl].filter(doc => doc.status === 'valid').length;
+      const overallCompliance = (validDocuments / 3) * 100;
       
       return {
         truck,
         ntsa,
         insurance,
         tgl,
-        overallCompliance: [ntsa, insurance, tgl].filter(item => item.status === 'valid').length / 3 * 100
+        overallCompliance,
+        complianceLevel: overallCompliance === 100 ? 'Full' : overallCompliance >= 66 ? 'Partial' : 'Poor'
       };
     });
 
     return {
       type: 'Compliance Status Report',
-      period: `${dateRange.from!.toLocaleDateString()} - ${dateRange.to!.toLocaleDateString()}`,
+      period: `As of ${new Date().toLocaleDateString()}`,
       complianceData,
       summary: {
         totalTrucks: complianceData.length,
         fullyCompliant: complianceData.filter(d => d.overallCompliance === 100).length,
         partiallyCompliant: complianceData.filter(d => d.overallCompliance > 0 && d.overallCompliance < 100).length,
         nonCompliant: complianceData.filter(d => d.overallCompliance === 0).length,
-        avgCompliance: complianceData.reduce((sum, d) => sum + d.overallCompliance, 0) / (complianceData.length || 1)
+        avgCompliance: complianceData.reduce((sum, d) => sum + d.overallCompliance, 0) / (complianceData.length || 1),
+        expiringSoon: complianceData.filter(d => 
+          d.ntsa.status === 'expiring_soon' || 
+          d.insurance.status === 'expiring_soon' || 
+          d.tgl.status === 'expiring_soon'
+        ).length,
+        expired: complianceData.filter(d => 
+          d.ntsa.status === 'expired' || 
+          d.insurance.status === 'expired' || 
+          d.tgl.status === 'expired'
+        ).length
       }
     };
   };
@@ -363,74 +428,21 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
 
     let specificContent = '';
     
-    if (type === 'fleet') {
-      specificContent = `
-        <div class="summary">
-          <h3>Fleet Summary</h3>
-          <div class="summary-grid">
-            <div class="summary-item">
-              <span class="label">Total Revenue:</span>
-              <span class="value ${data.summary.totalProfit >= 0 ? 'profit' : 'loss'}">KSh ${data.summary.totalRevenue.toLocaleString()}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">Operating Costs:</span>
-              <span class="value">KSh ${data.summary.totalOperatingCost.toLocaleString()}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">Net Profit/Loss:</span>
-              <span class="value ${data.summary.totalProfit >= 0 ? 'profit' : 'loss'}">KSh ${data.summary.totalProfit.toLocaleString()}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">Avg Profit Margin:</span>
-              <span class="value ${data.summary.averageProfitMargin >= 0 ? 'profit' : 'loss'}">${data.summary.averageProfitMargin.toFixed(1)}%</span>
-            </div>
-          </div>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Truck</th>
-              <th>Trips</th>
-              <th>Distance (km)</th>
-              <th>Revenue (KSh)</th>
-              <th>Operating Cost (KSh)</th>
-              <th>Profit/Loss (KSh)</th>
-              <th>Profit Margin (%)</th>
-              <th>Fuel Efficiency (km/L)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.truckStats.map((stat: any) => `
-              <tr>
-                <td>${stat.truck.truck_number}</td>
-                <td>${stat.tripCount}</td>
-                <td>${stat.totalDistance.toLocaleString()}</td>
-                <td class="${stat.profitLoss >= 0 ? 'profit' : 'loss'}">${stat.totalRevenue.toLocaleString()}</td>
-                <td>${stat.operatingCost.toLocaleString()}</td>
-                <td class="${stat.profitLoss >= 0 ? 'profit' : 'loss'}">${stat.profitLoss.toLocaleString()}</td>
-                <td class="${stat.profitMargin >= 0 ? 'profit' : 'loss'}">${stat.profitMargin.toFixed(1)}%</td>
-                <td>${stat.fuelEfficiency.toFixed(1)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    } else if (type === 'fuel') {
+    if (type === 'fuel') {
       specificContent = `
         <div class="summary">
           <h3>Fuel Consumption Summary</h3>
           <div class="summary-grid">
             <div class="summary-item">
               <span class="label">Total Fuel Consumed:</span>
-              <span class="value">${data.summary.totalLiters.toFixed(0)}L</span>
+              <span class="value">${data.summary.totalLiters.toLocaleString()} L</span>
             </div>
             <div class="summary-item">
               <span class="label">Total Fuel Cost:</span>
               <span class="value">KSh ${data.summary.totalCost.toLocaleString()}</span>
             </div>
             <div class="summary-item">
-              <span class="label">Avg Cost per Liter:</span>
+              <span class="label">Average Cost/Liter:</span>
               <span class="value">KSh ${data.summary.avgCostPerLiter.toFixed(2)}</span>
             </div>
             <div class="summary-item">
@@ -446,9 +458,9 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
               <th>Truck</th>
               <th>Total Liters</th>
               <th>Total Cost (KSh)</th>
-              <th>Avg Cost/L (KSh)</th>
+              <th>Avg Cost/Liter</th>
               <th>Efficiency (km/L)</th>
-              <th>Refuel Count</th>
+              <th>Records</th>
               <th>Last Refill</th>
             </tr>
           </thead>
@@ -456,24 +468,55 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
             ${data.truckFuelStats.map((stat: any) => `
               <tr>
                 <td>${stat.truck.truck_number}</td>
-                <td>${stat.totalLiters.toFixed(0)}</td>
+                <td>${stat.totalLiters.toLocaleString()}</td>
                 <td>${stat.totalCost.toLocaleString()}</td>
                 <td>${stat.avgCostPerLiter.toFixed(2)}</td>
                 <td>${stat.fuelEfficiency.toFixed(1)}</td>
                 <td>${stat.recordCount}</td>
-                <td>${stat.lastRefill ? new Date(stat.lastRefill).toLocaleDateString() : 'N/A'}</td>
+                <td>${stat.lastRefill}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
+
+        <div class="detailed-records">
+          <h3>Detailed Fuel Records</h3>
+          ${data.truckFuelStats.map((stat: any) => `
+            <div class="truck-section">
+              <h4>${stat.truck.truck_number} - ${stat.truck.make} ${stat.truck.model}</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Liters</th>
+                    <th>Cost (KSh)</th>
+                    <th>Cost/Liter</th>
+                    <th>Odometer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${stat.fuelRecords.map((record: any) => `
+                    <tr>
+                      <td>${record.date}</td>
+                      <td>${record.liters}</td>
+                      <td>${record.cost.toLocaleString()}</td>
+                      <td>${record.costPerLiter.toFixed(2)}</td>
+                      <td>${record.odometer}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `).join('')}
+        </div>
       `;
     } else if (type === 'maintenance') {
       specificContent = `
         <div class="summary">
-          <h3>Maintenance Summary</h3>
+          <h3>Maintenance & Service Summary</h3>
           <div class="summary-grid">
             <div class="summary-item">
-              <span class="label">Total Maintenance Cost:</span>
+              <span class="label">Total Cost:</span>
               <span class="value">KSh ${data.summary.totalCost.toLocaleString()}</span>
             </div>
             <div class="summary-item">
@@ -481,12 +524,12 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
               <span class="value">${data.summary.totalServices}</span>
             </div>
             <div class="summary-item">
-              <span class="label">Avg Cost per Service:</span>
-              <span class="value">KSh ${data.summary.avgCostPerService.toLocaleString()}</span>
+              <span class="label">Servicing Count:</span>
+              <span class="value">${data.summary.totalServicing}</span>
             </div>
             <div class="summary-item">
-              <span class="label">Completion Rate:</span>
-              <span class="value ${data.summary.completionRate >= 80 ? 'profit' : 'loss'}">${data.summary.completionRate.toFixed(1)}%</span>
+              <span class="label">Maintenance Count:</span>
+              <span class="value">${data.summary.totalMaintenance}</span>
             </div>
           </div>
         </div>
@@ -498,8 +541,6 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
               <th>Total Cost (KSh)</th>
               <th>Services</th>
               <th>Completed</th>
-              <th>Upcoming</th>
-              <th>Avg Cost/Service (KSh)</th>
               <th>Last Service</th>
             </tr>
           </thead>
@@ -510,13 +551,46 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
                 <td>${stat.totalCost.toLocaleString()}</td>
                 <td>${stat.serviceCount}</td>
                 <td class="profit">${stat.completedServices}</td>
-                <td>${stat.upcomingServices}</td>
-                <td>${stat.avgCostPerService.toLocaleString()}</td>
-                <td>${stat.lastService ? new Date(stat.lastService).toLocaleDateString() : 'N/A'}</td>
+                <td>${stat.lastService}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
+
+        <div class="detailed-records">
+          <h3>Detailed Service Records</h3>
+          ${data.truckMaintenanceStats.map((stat: any) => `
+            <div class="truck-section">
+              <h4>${stat.truck.truck_number} - ${stat.truck.make} ${stat.truck.model}</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Cost (KSh)</th>
+                    <th>Status</th>
+                    <th>Route Taken</th>
+                    <th>Items Purchased</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${stat.maintenanceRecords.map((record: any) => `
+                    <tr>
+                      <td>${record.date}</td>
+                      <td>${record.type.charAt(0).toUpperCase() + record.type.slice(1)}</td>
+                      <td>${record.description}</td>
+                      <td>${record.cost?.toLocaleString() || 'N/A'}</td>
+                      <td class="${record.status === 'completed' ? 'profit' : 'loss'}">${record.status}</td>
+                      <td>${record.routeTaken}</td>
+                      <td>${record.itemsPurchased}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `).join('')}
+        </div>
       `;
     } else if (type === 'compliance') {
       specificContent = `
@@ -532,12 +606,12 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
               <span class="value profit">${data.summary.fullyCompliant}</span>
             </div>
             <div class="summary-item">
-              <span class="label">Partially Compliant:</span>
-              <span class="value">${data.summary.partiallyCompliant}</span>
+              <span class="label">Expiring Soon:</span>
+              <span class="value loss">${data.summary.expiringSoon}</span>
             </div>
             <div class="summary-item">
-              <span class="label">Avg Compliance:</span>
-              <span class="value ${data.summary.avgCompliance >= 80 ? 'profit' : 'loss'}">${data.summary.avgCompliance.toFixed(1)}%</span>
+              <span class="label">Expired:</span>
+              <span class="value loss">${data.summary.expired}</span>
             </div>
           </div>
         </div>
@@ -559,118 +633,13 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
             ${data.complianceData.map((item: any) => `
               <tr>
                 <td>${item.truck.truck_number}</td>
-                <td class="${item.ntsa.status === 'valid' ? 'profit' : 'loss'}">${item.ntsa.status.toUpperCase()}</td>
-                <td>${item.ntsa.expiry.toLocaleDateString()}</td>
-                <td class="${item.insurance.status === 'valid' ? 'profit' : 'loss'}">${item.insurance.status.toUpperCase()}</td>
-                <td>${item.insurance.expiry.toLocaleDateString()}</td>
-                <td class="${item.tgl.status === 'valid' ? 'profit' : 'loss'}">${item.tgl.status.toUpperCase()}</td>
-                <td>${item.tgl.expiry.toLocaleDateString()}</td>
+                <td class="${item.ntsa.status === 'valid' ? 'profit' : 'loss'}">${item.ntsa.status.replace('_', ' ').toUpperCase()}</td>
+                <td>${item.ntsa.expiry ? item.ntsa.expiry.toLocaleDateString() : 'N/A'}</td>
+                <td class="${item.insurance.status === 'valid' ? 'profit' : 'loss'}">${item.insurance.status.replace('_', ' ').toUpperCase()}</td>
+                <td>${item.insurance.expiry ? item.insurance.expiry.toLocaleDateString() : 'N/A'}</td>
+                <td class="${item.tgl.status === 'valid' ? 'profit' : 'loss'}">${item.tgl.status.replace('_', ' ').toUpperCase()}</td>
+                <td>${item.tgl.expiry ? item.tgl.expiry.toLocaleDateString() : 'N/A'}</td>
                 <td class="${item.overallCompliance >= 80 ? 'profit' : 'loss'}">${item.overallCompliance.toFixed(1)}%</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    } else if (type === 'financial') {
-      specificContent = `
-        <div class="summary">
-          <h3>Financial Summary</h3>
-          <div class="summary-grid">
-            <div class="summary-item">
-              <span class="label">Total Revenue:</span>
-              <span class="value profit">KSh ${data.summary.totalRevenue.toLocaleString()}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">Total Costs:</span>
-              <span class="value">KSh ${data.summary.totalCosts.toLocaleString()}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">Net Profit:</span>
-              <span class="value ${data.summary.netProfit >= 0 ? 'profit' : 'loss'}">KSh ${data.summary.netProfit.toLocaleString()}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">Avg Profit Margin:</span>
-              <span class="value ${data.summary.averageProfitMargin >= 0 ? 'profit' : 'loss'}">${data.summary.averageProfitMargin.toFixed(1)}%</span>
-            </div>
-          </div>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Month</th>
-              <th>Trips</th>
-              <th>Revenue (KSh)</th>
-              <th>Fuel Cost (KSh)</th>
-              <th>Maintenance Cost (KSh)</th>
-              <th>Total Cost (KSh)</th>
-              <th>Profit/Loss (KSh)</th>
-              <th>Profit Margin (%)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.monthlyBreakdown.map((month: any) => `
-              <tr>
-                <td>${month.month}</td>
-                <td>${month.trips}</td>
-                <td class="profit">${month.revenue.toLocaleString()}</td>
-                <td>${month.fuelCost.toLocaleString()}</td>
-                <td>${month.maintenanceCost.toLocaleString()}</td>
-                <td>${month.totalCost.toLocaleString()}</td>
-                <td class="${month.profit >= 0 ? 'profit' : 'loss'}">${month.profit.toLocaleString()}</td>
-                <td class="${month.profitMargin >= 0 ? 'profit' : 'loss'}">${month.profitMargin.toFixed(1)}%</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    } else if (type === 'operational') {
-      specificContent = `
-        <div class="summary">
-          <h3>Operational Summary</h3>
-          <div class="summary-grid">
-            <div class="summary-item">
-              <span class="label">Total Trips:</span>
-              <span class="value">${data.summary.totalTrips}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">Completed Trips:</span>
-              <span class="value profit">${data.summary.completedTrips}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">On-Time Performance:</span>
-              <span class="value ${data.summary.onTimePercentage >= 80 ? 'profit' : 'loss'}">${data.summary.onTimePercentage.toFixed(1)}%</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">Avg Trip Distance:</span>
-              <span class="value">${data.summary.avgTripDistance.toFixed(0)} km</span>
-            </div>
-          </div>
-        </div>
-
-        <h3>Top Performing Routes</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Route</th>
-              <th>Trips</th>
-              <th>Total Distance (km)</th>
-              <th>Total Revenue (KSh)</th>
-              <th>Avg Revenue (KSh)</th>
-              <th>Revenue/km (KSh)</th>
-              <th>Avg Delay (hrs)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.topRoutes.map((route: any) => `
-              <tr>
-                <td>${route.route}</td>
-                <td>${route.count}</td>
-                <td>${route.totalDistance.toLocaleString()}</td>
-                <td class="profit">${route.totalRevenue.toLocaleString()}</td>
-                <td>${route.avgRevenue.toLocaleString()}</td>
-                <td>${route.revenuePerKm.toFixed(0)}</td>
-                <td class="${route.avgDelay <= 2 ? 'profit' : 'loss'}">${route.avgDelay.toFixed(1)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -699,6 +668,8 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
             tr:nth-child(even) { background-color: #f8f9fa; }
             tr:hover { background-color: #e3f2fd; }
             h3 { color: #007bff; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
+            .truck-section { margin: 20px 0; padding: 15px; border: 1px solid #dee2e6; border-radius: 5px; }
+            .detailed-records { margin-top: 30px; }
             @media print { 
               .no-print { display: none; }
               body { margin: 10mm; }
