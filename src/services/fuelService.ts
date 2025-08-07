@@ -1,24 +1,23 @@
-import db from '../db';
+import { supabase } from '../integrations/supabase/client';
 
-export async function createFuelRecord(data: { truckId: string; fuelType: string; quantity: number; amount: number; }) {
-  // Make sure that the database table 'fuel_records' has columns 'truck_id', 'fuel_type', 'quantity', 'amount'.
-  const query = `
-    INSERT INTO fuel_records (truck_id, fuel_type, quantity, amount)
-    VALUES ($1, $2, $3, $4)
-    RETURNING *;
-  `;
-  const values = [data.truckId, data.fuelType, data.quantity, data.amount];
-  try {
-    const result = await db.query(query, values);
-    return result.rows[0];
-  } catch (error) {
+export async function createFuelRecord(data: { truck_id: string; liters: number; total_cost: number; fuel_date: string; odometer_reading?: number; }) {
+  const { data: result, error } = await supabase
+    .from('fuel_records')
+    .insert({
+      truck_id: data.truck_id,
+      liters: data.liters,
+      total_cost: data.total_cost,
+      cost_per_liter: data.total_cost / data.liters,
+      fuel_date: data.fuel_date,
+      odometer_reading: data.odometer_reading
+    })
+    .select()
+    .single();
+
+  if (error) {
     console.error("Error creating fuel record:", error);
     throw error;
   }
-}
-  } catch (error) {
-    throw error;
-  }
-}
-  }
+
+  return result;
 }

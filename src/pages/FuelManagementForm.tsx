@@ -18,10 +18,10 @@ function FuelManagementForm() {
     e.preventDefault();
     try {
       await createFuelRecord({
-        truckId: formData.truckId,
-        fuelType: formData.fuelType,
-        quantity: parseFloat(formData.quantity),
-        amount: parseFloat(formData.amount),
+        truck_id: formData.truckId,
+        liters: parseFloat(formData.quantity),
+        total_cost: parseFloat(formData.amount),
+        fuel_date: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Error submitting form", error);

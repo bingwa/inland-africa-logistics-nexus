@@ -1,5 +1,3 @@
-// ...existing imports...
-import { getSparesReport } from '../services/reportsService';
 import React, { useEffect, useState } from 'react';
 
 function ReportsPage() {
@@ -7,11 +5,7 @@ function ReportsPage() {
 	const [sparesReport, setSparesReport] = useState([]);
 
 	useEffect(() => {
-		async function fetchReport() {
-			const reportData = await getSparesReport();
-			setSparesReport(reportData);
-		}
-		fetchReport();
+		// TODO: Implement fetchReport with Supabase
 	}, []);
 
 	return (

@@ -56,14 +56,10 @@ export default function FuelManagement() {
 
   const [newRecord, setNewRecord] = useState({
     truck_id: "",
-    driver_id: "",
     liters: "",
     total_cost: "",
     fuel_date: new Date().toISOString().split('T')[0],
     odometer_reading: "",
-    fuel_station: "",
-    receipt_number: "",
-    payment_method: "",
   });
 
 
@@ -79,15 +75,11 @@ export default function FuelManagement() {
 
     const recordData = {
       truck_id: newRecord.truck_id,
-      driver_id: newRecord.driver_id || null,
       liters: parseFloat(newRecord.liters),
       total_cost: parseFloat(newRecord.total_cost),
       cost_per_liter: parseFloat(newRecord.total_cost) / parseFloat(newRecord.liters),
       odometer_reading: newRecord.odometer_reading ? parseInt(newRecord.odometer_reading) : null,
       fuel_date: new Date(newRecord.fuel_date).toISOString(),
-      fuel_station: newRecord.fuel_station,
-      receipt_number: newRecord.receipt_number,
-      payment_method: newRecord.payment_method || null,
     };
 
     try {
@@ -99,14 +91,10 @@ export default function FuelManagement() {
       setIsAddDialogOpen(false);
       setNewRecord({
         truck_id: "",
-        driver_id: "",
         liters: "",
         total_cost: "",
         fuel_date: new Date().toISOString().split('T')[0],
         odometer_reading: "",
-        fuel_station: "",
-        receipt_number: "",
-        payment_method: "",
       });
     } catch (error) {
       toast({
@@ -260,38 +248,6 @@ export default function FuelManagement() {
                   value={newRecord.odometer_reading}
                   onChange={(e) => setNewRecord({...newRecord, odometer_reading: e.target.value})}
                 />
-              </div>
-              <div>
-                <Label htmlFor="station">Fuel Station</Label>
-                <Input
-                  id="station"
-                  value={newRecord.fuel_station}
-                  onChange={(e) => setNewRecord({...newRecord, fuel_station: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="payment">Payment Method</Label>
-                  <Select value={newRecord.payment_method} onValueChange={(value) => setNewRecord({...newRecord, payment_method: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="company_account">Company Account</SelectItem>
-                      <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="receipt">Receipt #</Label>
-                  <Input
-                    id="receipt"
-                    value={newRecord.receipt_number}
-                    onChange={(e) => setNewRecord({...newRecord, receipt_number: e.target.value})}
-                  />
-                </div>
               </div>
             </div>
             <DialogFooter>
