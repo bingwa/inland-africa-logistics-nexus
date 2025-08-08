@@ -41,102 +41,83 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
         const itemDate = new Date(m.service_date);
         const matchesDate = itemDate >= dateRange.from! && itemDate <= dateRange.to!;
         const matchesTruck = selectedTruck === 'all' || m.truck_id === selectedTruck;
-        const hasItems = m.items_purchased && 
-                        m.items_purchased.trim() !== '' && 
-                        m.items_purchased.toLowerCase() !== 'none' &&
-                        m.items_purchased.toLowerCase() !== 'null';
-        
-        console.log('Filtering maintenance record:', {
-          id: m.id,
-          truck_id: m.truck_id,
-          items_purchased: m.items_purchased,
-          hasItems,
-          matchesDate,
-          matchesTruck
-        });
-        
+        const hasItems =
+          m.items_purchased &&
+          m.items_purchased.trim() !== '' &&
+          m.items_purchased.toLowerCase() !== 'none' &&
+          m.items_purchased.toLowerCase() !== 'null';
+
         return matchesDate && matchesTruck && hasItems;
       }) || [];
 
-      console.log('Total maintenance records:', maintenance?.length);
-      console.log('Filtered maintenance records:', filteredMaintenance.length);
+      // Aggregate spares data per truck, per item
+      const reportRows: Array<{
+        truck_id: string,
+        truck_number: string,
+        spare: string,
+        quantity: number,
+        price_per_unit: number,
+        total_cost: number,
+        maintenance_category: string,
+        service_type: string,
+        route: string,
+        service_description: string,
+        date: string,
+      }> = [];
 
-      const sparesByTruck = new Map();
-      
-      filteredMaintenance.forEach(maintenance => {
-        const truckId = maintenance.truck_id;
-        const truck = trucks?.find(t => t.id === truckId);
-        
+      filteredMaintenance.forEach(maint => {
+        const truck = trucks?.find(t => t.id === maint.truck_id);
         if (!truck) return;
-        
-        if (!sparesByTruck.has(truckId)) {
-          sparesByTruck.set(truckId, {
-            truck,
-            spares: [],
-            totalCost: 0,
-            totalItems: 0
-          });
-        }
-        
-        const truckData = sparesByTruck.get(truckId);
-        
-        const items = maintenance.items_purchased.split(',').map(item => item.trim()).filter(item => item);
-        
+        // Each maintenance record can have multiple items
+        const items = maint.items_purchased.split(',').map(item => item.trim()).filter(Boolean);
+
         items.forEach(item => {
+          // Try to extract info from item string
           let itemName = item;
           let quantity = 1;
-          let itemCost = 0;
-          
-          console.log('Processing item:', item);
-          
+          let pricePerUnit = 0;
+
+          // Format: "Brake Pads (Qty: 2, Cost: KSh 3000)"
           const newFormatMatch = item.match(/(.+?)\s*\(Qty:\s*(\d+),\s*Cost:\s*KSh\s*([\d,]+)\)/i);
           if (newFormatMatch) {
             itemName = newFormatMatch[1].trim();
             quantity = parseInt(newFormatMatch[2]);
-            itemCost = parseFloat(newFormatMatch[3].replace(/,/g, ''));
-            console.log('Parsed new format:', { itemName, quantity, itemCost });
+            pricePerUnit = parseFloat(newFormatMatch[3].replace(/,/g, '')) / quantity;
           } else {
+            // Format: "Brake Pads x2"
             const quantityMatch = item.match(/(.+?)\s*x(\d+)$/i);
             if (quantityMatch) {
               itemName = quantityMatch[1].trim();
               quantity = parseInt(quantityMatch[2]);
-              console.log('Parsed old format:', { itemName, quantity });
             }
-            itemCost = (maintenance.cost || 0) / items.length;
-            console.log('Calculated cost:', itemCost);
+            // Legacy fallback: split cost equally
+            pricePerUnit = (maint.cost || 0) / items.length / quantity;
           }
-          
-          truckData.spares.push({
-            date: maintenance.service_date,
-            itemName,
+
+          reportRows.push({
+            truck_id: truck.id,
+            truck_number: truck.truck_number,
+            spare: itemName,
             quantity,
-            estimatedCost: itemCost,
-            maintenanceType: maintenance.maintenance_type,
-            serviceProvider: maintenance.service_provider || 'N/A',
-            serviceType: maintenance.service_type || 'N/A',
-            routeTaken: maintenance.route_taken || 'N/A'
+            price_per_unit: pricePerUnit,
+            total_cost: pricePerUnit * quantity,
+            maintenance_category: maint.maintenance_type,
+            service_type: maint.service_type || 'N/A',
+            route: maint.route_taken || 'N/A',
+            service_description: maint.service_provider || '',
+            date: new Date(maint.service_date).toLocaleDateString(),
           });
-          
-          truckData.totalCost += itemCost;
-          truckData.totalItems += quantity;
         });
       });
 
-      const reportData = {
+      // Generate the full report HTML
+      generateDetailedSparesReport({
         type: 'Truck Spares Report',
         period: `${dateRange.from!.toLocaleDateString()} - ${dateRange.to!.toLocaleDateString()}`,
         truckFilter: selectedTruck === 'all' ? 'All Trucks' : trucks?.find(t => t.id === selectedTruck)?.truck_number || 'Unknown Truck',
-        sparesByTruck: Array.from(sparesByTruck.values()),
-        summary: {
-          totalTrucks: sparesByTruck.size,
-          totalSpares: Array.from(sparesByTruck.values()).reduce((sum, truck) => sum + truck.totalItems, 0),
-          totalCost: Array.from(sparesByTruck.values()).reduce((sum, truck) => sum + truck.totalCost, 0),
-          totalMaintenanceRecords: filteredMaintenance.length
-        }
-      };
+        rows: reportRows,
+      });
 
-      generateDetailedSparesReport(reportData);
-      
       toast({
         title: "Spares Report Generated Successfully",
         description: "Your detailed spares report is ready for viewing and printing.",
@@ -158,8 +139,65 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
     const reportWindow = window.open('', '_blank');
     if (!reportWindow) return;
 
-    const reportHtml = `...`; // (truncated for brevity, this part remains unchanged from your original code)
+    // Build HTML table rows
+    const tableRows = data.rows.map((row: any, idx: number) => `
+      <tr>
+        <td>${row.truck_id}</td>
+        <td>${row.truck_number}</td>
+        <td>${row.spare}</td>
+        <td style="text-align:right">${row.quantity}</td>
+        <td style="text-align:right">KSh ${row.price_per_unit.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        <td style="text-align:right">KSh ${row.total_cost.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        <td>${row.maintenance_category}</td>
+        <td>${row.service_type}</td>
+        <td>${row.route}</td>
+        <td>${row.service_description}</td>
+        <td>${row.date}</td>
+      </tr>
+    `).join('');
 
+    const reportHtml = `
+      <html>
+      <head>
+        <title>${data.type}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; background: #fafafa; }
+          h1, h2 { margin-bottom: 0.5em; }
+          table { width: 100%; border-collapse: collapse; background: #fff; }
+          th, td { border: 1px solid #ddd; padding: 8px; }
+          th { background: #f5f5f5; }
+          tr:nth-child(even) { background: #f9f9f9; }
+        </style>
+      </head>
+      <body>
+        <h1>${data.type}</h1>
+        <h2>Period: ${data.period}</h2>
+        <h3>Truck: ${data.truckFilter}</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Truck ID</th>
+              <th>Truck Number</th>
+              <th>Spare Part</th>
+              <th>Quantity</th>
+              <th>Price Per Unit</th>
+              <th>Total Cost</th>
+              <th>Maintenance Category</th>
+              <th>Service Type</th>
+              <th>Route</th>
+              <th>Service Description</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+        <br>
+        <button onclick="window.print()">Print Report</button>
+      </body>
+      </html>
+    `;
     reportWindow.document.write(reportHtml);
     reportWindow.document.close();
   };
