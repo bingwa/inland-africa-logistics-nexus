@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePickerWithRange } from "@/components/ui/date-picker";
-import { Calendar, Download, FileText, Filter, X } from "lucide-react";
+import { Calendar, Download, FileText, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTrucks, useDrivers, useTrips, useMaintenance, useFuelRecords } from "@/hooks/useSupabaseData";
 
@@ -20,7 +20,8 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
     from: undefined,
     to: undefined
   });
-  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+  // Always include truck_number as selected!
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(['truck_number']);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [reportName, setReportName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -44,44 +45,68 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
     { value: 'custom', label: 'Custom Multi-Table Report' }
   ];
 
+  // Helper to ALWAYS include truck_number first
   const getColumnsForReportType = (type: string) => {
+    let cols: string[] = [];
     switch (type) {
       case 'fleet':
-        return ['truck_number', 'make', 'model', 'status', 'mileage', 'last_service_date', 'next_service_due'];
+        cols = ['truck_number', 'make', 'model', 'status', 'mileage', 'last_service_date', 'next_service_due'];
+        break;
       case 'truck_analytics':
-        return ['truck_number', 'monthly_trips', 'completed_trips', 'total_mileage', 'fuel_cost', 'top_routes', 'efficiency_rating'];
+        cols = ['truck_number', 'monthly_trips', 'completed_trips', 'total_mileage', 'fuel_cost', 'top_routes', 'efficiency_rating'];
+        break;
       case 'trips':
-        return ['trip_number', 'origin', 'destination', 'status', 'planned_departure', 'actual_departure', 'distance_km', 'cargo_value_usd'];
+        cols = ['truck_number', 'trip_number', 'origin', 'destination', 'status', 'planned_departure', 'actual_departure', 'distance_km', 'cargo_value_usd'];
+        break;
       case 'drivers':
-        return ['full_name', 'employee_id', 'license_number', 'hire_date', 'status', 'compliance_score'];
+        cols = ['truck_number', 'full_name', 'employee_id', 'license_number', 'hire_date', 'status', 'compliance_score']; // add truck_number for consistency
+        break;
       case 'maintenance':
-        return ['maintenance_type', 'service_date', 'cost', 'status', 'technician', 'description'];
+        cols = ['truck_number', 'maintenance_type', 'service_date', 'cost', 'status', 'technician', 'description'];
+        break;
       case 'fuel':
-        return ['fuel_date', 'liters', 'total_cost', 'cost_per_liter', 'fuel_station', 'odometer_reading'];
+        cols = ['truck_number', 'fuel_date', 'liters', 'total_cost', 'cost_per_liter', 'fuel_station', 'odometer_reading'];
+        break;
       default:
-        return [];
+        cols = ['truck_number'];
+    }
+    // Always ensure truck_number is first and only once
+    return Array.from(new Set(['truck_number', ...cols.filter(c => c !== 'truck_number')]));
+  };
+
+  // Always require truck_number in selection
+  const handleColumnToggle = (column: string, checked: boolean) => {
+    if (column === 'truck_number') return; // Can't remove truck_number
+    if (checked) {
+      setSelectedColumns(Array.from(new Set(['truck_number', ...selectedColumns, column])));
+    } else {
+      setSelectedColumns(['truck_number', ...selectedColumns.filter(col => col !== column && col !== 'truck_number')]);
     }
   };
 
-  const handleColumnToggle = (column: string, checked: boolean) => {
-    if (checked) {
-      setSelectedColumns([...selectedColumns, column]);
-    } else {
-      setSelectedColumns(selectedColumns.filter(col => col !== column));
+  // Normalizes truck_number for all records
+  const normalizeTruckNumber = (item: any) => {
+    if (item.truck_number) return item.truck_number;
+    if (item.registration_plate) return item.registration_plate;
+    if (item.truck_id) {
+      // Try to look up from trucks dataset
+      const found = trucks?.find(t => t.id === item.truck_id);
+      return found?.truck_number ?? item.truck_id;
     }
+    return 'N/A';
   };
 
   const getTruckAnalytics = (truckId: string, fromDate?: Date, toDate?: Date) => {
     const startDate = fromDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const endDate = toDate || new Date();
 
-    const truckTrips = trips?.filter(trip => 
-      trip.truck_id === truckId && 
+    const truckTrips = trips?.filter(trip =>
+      trip.truck_id === truckId &&
       new Date(trip.created_at) >= startDate &&
       new Date(trip.created_at) <= endDate
     ) || [];
 
-    const truckFuel = fuelRecords?.filter(fuel => 
+    const truckFuel = fuelRecords?.filter(fuel =>
       fuel.truck_id === truckId &&
       new Date(fuel.fuel_date) >= startDate &&
       new Date(fuel.fuel_date) <= endDate
@@ -138,16 +163,19 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
 
   const getReportData = () => {
     let data: any[] = [];
-    
+
     switch (reportType) {
       case 'fleet':
-        data = trucks || [];
+        data = trucks?.map(truck => ({
+          ...truck,
+          truck_number: truck.truck_number ?? truck.registration_plate ?? truck.id
+        })) || [];
         break;
       case 'truck_analytics':
         data = trucks?.map(truck => {
           const analytics = getTruckAnalytics(truck.id, dateRange.from, dateRange.to);
           return {
-            truck_number: truck.truck_number,
+            truck_number: truck.truck_number ?? truck.registration_plate ?? truck.id,
             make: truck.make,
             model: truck.model,
             monthly_trips: analytics.tripsCount,
@@ -160,16 +188,28 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
         }) || [];
         break;
       case 'trips':
-        data = trips || [];
+        data = trips?.map(trip => ({
+          ...trip,
+          truck_number: normalizeTruckNumber(trip)
+        })) || [];
         break;
       case 'drivers':
-        data = drivers || [];
+        data = drivers?.map(driver => ({
+          ...driver,
+          truck_number: driver.truck_number ? driver.truck_number : 'N/A'
+        })) || [];
         break;
       case 'maintenance':
-        data = maintenance || [];
+        data = maintenance?.map(m => ({
+          ...m,
+          truck_number: normalizeTruckNumber(m)
+        })) || [];
         break;
       case 'fuel':
-        data = fuelRecords || [];
+        data = fuelRecords?.map(f => ({
+          ...f,
+          truck_number: normalizeTruckNumber(f)
+        })) || [];
         break;
       default:
         data = [];
@@ -186,7 +226,7 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
     // Apply additional filters
     Object.entries(filters).forEach(([key, value]) => {
       if (value) {
-        data = data.filter(item => 
+        data = data.filter(item =>
           item[key]?.toString().toLowerCase().includes(value.toLowerCase())
         );
       }
@@ -198,6 +238,11 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
   const generatePrintableReport = (data: any[]) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    // Always include truck_number first in columns
+    const allColumns = selectedColumns.length > 0
+      ? Array.from(new Set(['truck_number', ...selectedColumns.filter(c => c !== 'truck_number')]))
+      : getColumnsForReportType(reportType);
 
     const reportHtml = `
       <!DOCTYPE html>
@@ -245,14 +290,14 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
           <table>
             <thead>
               <tr>
-                ${selectedColumns.length > 0 ? selectedColumns.map(col => `<th>${col.replace('_', ' ').toUpperCase()}</th>`).join('') : getColumnsForReportType(reportType).map(col => `<th>${col.replace('_', ' ').toUpperCase()}</th>`).join('')}
+                ${allColumns.map(col => `<th>${col.replace('_', ' ').toUpperCase()}</th>`).join('')}
               </tr>
             </thead>
             <tbody>
               ${data.map(item => `
                 <tr>
-                  ${(selectedColumns.length > 0 ? selectedColumns : getColumnsForReportType(reportType)).map(col => {
-                    let value = item[col] || 'N/A';
+                  ${allColumns.map(col => {
+                    let value = item[col] ?? (col === 'truck_number' ? normalizeTruckNumber(item) : 'N/A');
                     if (col === 'cargo_value_usd' && value !== 'N/A') {
                       value = `KSh ${(value * 130).toLocaleString()}`;
                     }
@@ -344,7 +389,20 @@ export const CustomReportGenerator: React.FC<CustomReportGeneratorProps> = ({ on
             <div>
               <Label>Select Columns to Include</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                {getColumnsForReportType(reportType).map(column => (
+                {/* Always include and disable truck_number */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="truck_number"
+                    checked={true}
+                    disabled
+                  />
+                  <Label htmlFor="truck_number" className="text-sm font-semibold">
+                    Truck Number (Registration Plate)
+                  </Label>
+                </div>
+                {getColumnsForReportType(reportType)
+                  .filter(column => column !== 'truck_number')
+                  .map(column => (
                   <div key={column} className="flex items-center space-x-2">
                     <Checkbox
                       id={column}
