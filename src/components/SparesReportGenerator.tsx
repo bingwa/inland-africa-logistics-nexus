@@ -64,7 +64,7 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
         date: string;
       };
 
-      // We'll keep a Map<truckNumber, Map<spare, SpareRow>>
+      // We'll keep a Map<truckNumber, Map<spare+category+type+route+desc+date, SpareRow>>
       const truckMap: Map<string, Map<string, SpareRow>> = new Map();
       // For stats
       const truckStats: Record<string, { truck_number: string; total_cost: number; total_quantity: number }> = {};
@@ -107,22 +107,18 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
             pricePerUnit = totalCost / quantity;
           }
 
-          // Group by truck and spare
+          // Compose a unique key for grouping: spare+maintenance_category+service_type+route+desc+date
+          const key = `${itemName}|${maint.maintenance_type}|${maint.service_type || 'N/A'}|${maint.route_taken || 'N/A'}|${actualDescription}|${new Date(maint.service_date).toLocaleDateString()}`;
           if (!truckMap.has(truckNumber)) truckMap.set(truckNumber, new Map());
           const spareMap = truckMap.get(truckNumber)!;
-          if (spareMap.has(itemName)) {
+          if (spareMap.has(key)) {
             // Update existing
-            const row = spareMap.get(itemName)!;
+            const row = spareMap.get(key)!;
             row.quantity += quantity;
             row.total_cost += totalCost;
-            // keep price per unit as average (for simplicity, sum weighted)
             row.price_per_unit = row.total_cost / row.quantity;
-            // Prefer earliest date
-            if (new Date(row.date) > new Date(maint.service_date)) row.date = new Date(maint.service_date).toLocaleDateString();
-            // Prefer latest description
-            row.service_description = actualDescription;
           } else {
-            spareMap.set(itemName, {
+            spareMap.set(key, {
               truck_number: truckNumber,
               spare: itemName,
               quantity,
@@ -143,7 +139,7 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
 
       const reportRows: SpareRow[] = [];
       // Flatten truckMap to an array
-      for (const [truckNumber, spareMap] of truckMap.entries()) {
+      for (const [, spareMap] of truckMap.entries()) {
         for (const [, row] of spareMap.entries()) {
           reportRows.push(row);
         }
@@ -180,6 +176,7 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
     }
   };
 
+  // Report HTML design emulates the first uploaded PDF version, with a classic, bordered, boxy look and no Print button in print.
   const generateDetailedSparesReport = (data: any) => {
     const reportWindow = window.open('', '_blank');
     if (!reportWindow) return;
@@ -187,25 +184,24 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
     // Build HTML table rows
     const tableRows = data.rows.map((row: any, idx: number) => `
       <tr>
-        <td>${row.truck_number}</td>
-        <td>${row.spare}</td>
-        <td style="text-align:right">${row.quantity}</td>
-        <td style="text-align:right">KSh ${row.price_per_unit.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-        <td style="text-align:right">KSh ${row.total_cost.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-        <td>${row.maintenance_category}</td>
-        <td>${row.service_type}</td>
-        <td>${row.route}</td>
-        <td>${row.service_description}</td>
-        <td>${row.date}</td>
+        <td class="cell">${row.truck_number}</td>
+        <td class="cell">${row.spare}</td>
+        <td class="cell" style="text-align:right">${row.quantity}</td>
+        <td class="cell" style="text-align:right">KSh ${row.price_per_unit.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        <td class="cell" style="text-align:right">KSh ${row.total_cost.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        <td class="cell">${row.maintenance_category}</td>
+        <td class="cell">${row.service_type}</td>
+        <td class="cell">${row.route}</td>
+        <td class="cell">${row.service_description}</td>
+        <td class="cell">${row.date}</td>
       </tr>
     `).join('');
 
-    // Stats below the table
     const statsTableRows = data.stats.map((stat: any, idx: number) => `
       <tr>
-        <td>${stat.truck_number}</td>
-        <td style="text-align:right">KSh ${stat.total_cost.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-        <td style="text-align:right">${stat.total_quantity}</td>
+        <td class="cell">${stat.truck_number}</td>
+        <td class="cell" style="text-align:right">KSh ${stat.total_cost.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        <td class="cell" style="text-align:right">${stat.total_quantity}</td>
       </tr>
     `).join('');
 
@@ -214,52 +210,139 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
       <head>
         <title>${data.type}</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 40px; background: #fafafa; }
-          h1, h2 { margin-bottom: 0.5em; }
-          table { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 2em; }
-          th, td { border: 1px solid #ddd; padding: 8px; }
-          th { background: #f5f5f5; }
-          tr:nth-child(even) { background: #f9f9f9; }
+          body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 0;
+          }
+          .report-container {
+            box-sizing: border-box;
+            background: #fff;
+            margin: 32px auto;
+            max-width: 1100px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 8px rgba(40,40,40,0.07);
+            border-radius: 10px;
+            padding: 36px 32px 42px 32px;
+          }
+          .report-header {
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 12px;
+            margin-bottom: 24px;
+          }
+          .report-title {
+            color: #2c3e50;
+            font-size: 2.3rem;
+            font-weight: 700;
+            margin: 0;
+          }
+          .report-meta {
+            font-size: 1rem;
+            color: #555;
+            margin-top: 6px;
+            margin-bottom: 4px;
+            font-weight: 500;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 32px;
+            background: #fafafa;
+          }
+          th {
+            font-size: 1rem;
+            font-weight: 600;
+            background: #f5f5f5;
+            color: #212121;
+            padding: 10px 6px;
+            border: 1px solid #d9d9d9;
+            text-align: left;
+          }
+          .cell, td {
+            border: 1px solid #e0e0e0;
+            padding: 11px 8px;
+            font-size: 0.97rem;
+            vertical-align: top;
+            background: #fff;
+          }
+          tr:nth-child(even) {
+            background: #f3f6fa;
+          }
+          .stats-header {
+            color: #2c3e50;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5em;
+            margin-top: 0;
+          }
+          .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #f8f8f8;
+          }
+          .stats-table th, .stats-table td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 7px;
+          }
+          @media print {
+            .print-btn { display: none !important; }
+            body {
+              background: #fff !important;
+            }
+            .report-container {
+              box-shadow: none !important;
+              margin: 0 !important;
+              border-radius: 0 !important;
+              padding: 0 !important;
+              border: none !important;
+              max-width: none !important;
+            }
+          }
         </style>
       </head>
       <body>
-        <h1>${data.type}</h1>
-        <h2>Period: ${data.period}</h2>
-        <h3>Truck: ${data.truckFilter}</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Truck Name</th>
-              <th>Spare Part</th>
-              <th>Quantity</th>
-              <th>Price Per Unit</th>
-              <th>Total Cost</th>
-              <th>Maintenance Category</th>
-              <th>Service Type</th>
-              <th>Route</th>
-              <th>Service Description</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRows}
-          </tbody>
-        </table>
-        <h3>Truck Spares Statistics</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Truck Name</th>
-              <th>Total Spares Spend</th>
-              <th>Total Quantity Bought</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${statsTableRows}
-          </tbody>
-        </table>
-        <br>
-        <button onclick="window.print()">Print Report</button>
+        <div class="report-container">
+          <div class="report-header">
+            <div class="report-title">${data.type}</div>
+            <div class="report-meta">Period: ${data.period}</div>
+            <div class="report-meta">Truck: ${data.truckFilter}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Truck Name</th>
+                <th>Spare Part</th>
+                <th>Quantity</th>
+                <th>Price Per Unit</th>
+                <th>Total Cost</th>
+                <th>Maintenance Category</th>
+                <th>Service Type</th>
+                <th>Route</th>
+                <th>Service Description</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+          <div class="stats-header">Truck Spares Statistics</div>
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th>Truck Name</th>
+                <th>Total Spares Spend</th>
+                <th>Total Quantity Bought</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${statsTableRows}
+            </tbody>
+          </table>
+          <br>
+          <button class="print-btn" onclick="window.print()">Print Report</button>
+        </div>
       </body>
       </html>
     `;
