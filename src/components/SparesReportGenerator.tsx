@@ -50,39 +50,51 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
         return matchesDate && matchesTruck && hasItems;
       }) || [];
 
-      // Aggregate spares data per truck, per item
-      const reportRows: Array<{
-        truck_id: string,
-        truck_number: string,
-        spare: string,
-        quantity: number,
-        price_per_unit: number,
-        total_cost: number,
-        maintenance_category: string,
-        service_type: string,
-        route: string,
-        service_description: string,
-        date: string,
-      }> = [];
+      // Group spares per truck and spare part, aggregate quantity and cost, keep relevant fields
+      type SpareRow = {
+        truck_number: string;
+        spare: string;
+        quantity: number;
+        price_per_unit: number;
+        total_cost: number;
+        maintenance_category: string;
+        service_type: string;
+        route: string;
+        service_description: string;
+        date: string;
+      };
+
+      // We'll keep a Map<truckNumber, Map<spare, SpareRow>>
+      const truckMap: Map<string, Map<string, SpareRow>> = new Map();
+      // For stats
+      const truckStats: Record<string, { truck_number: string; total_cost: number; total_quantity: number }> = {};
 
       filteredMaintenance.forEach(maint => {
         const truck = trucks?.find(t => t.id === maint.truck_id);
         if (!truck) return;
-        // Each maintenance record can have multiple items
+        const truckNumber = truck.truck_number;
+        if (!truckStats[truckNumber]) {
+          truckStats[truckNumber] = { truck_number: truckNumber, total_cost: 0, total_quantity: 0 };
+        }
+
+        // This is the **actual description** field from the record
+        const actualDescription = maint.description || maint.service_provider || maint.service_type || '';
+
         const items = maint.items_purchased.split(',').map(item => item.trim()).filter(Boolean);
 
         items.forEach(item => {
-          // Try to extract info from item string
           let itemName = item;
           let quantity = 1;
           let pricePerUnit = 0;
+          let totalCost = 0;
 
           // Format: "Brake Pads (Qty: 2, Cost: KSh 3000)"
           const newFormatMatch = item.match(/(.+?)\s*\(Qty:\s*(\d+),\s*Cost:\s*KSh\s*([\d,]+)\)/i);
           if (newFormatMatch) {
             itemName = newFormatMatch[1].trim();
             quantity = parseInt(newFormatMatch[2]);
-            pricePerUnit = parseFloat(newFormatMatch[3].replace(/,/g, '')) / quantity;
+            totalCost = parseFloat(newFormatMatch[3].replace(/,/g, ''));
+            pricePerUnit = totalCost / quantity;
           } else {
             // Format: "Brake Pads x2"
             const quantityMatch = item.match(/(.+?)\s*x(\d+)$/i);
@@ -91,31 +103,64 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
               quantity = parseInt(quantityMatch[2]);
             }
             // Legacy fallback: split cost equally
-            pricePerUnit = (maint.cost || 0) / items.length / quantity;
+            totalCost = (maint.cost || 0) / items.length;
+            pricePerUnit = totalCost / quantity;
           }
 
-          reportRows.push({
-            truck_id: truck.id,
-            truck_number: truck.truck_number,
-            spare: itemName,
-            quantity,
-            price_per_unit: pricePerUnit,
-            total_cost: pricePerUnit * quantity,
-            maintenance_category: maint.maintenance_type,
-            service_type: maint.service_type || 'N/A',
-            route: maint.route_taken || 'N/A',
-            service_description: maint.service_provider || '',
-            date: new Date(maint.service_date).toLocaleDateString(),
-          });
+          // Group by truck and spare
+          if (!truckMap.has(truckNumber)) truckMap.set(truckNumber, new Map());
+          const spareMap = truckMap.get(truckNumber)!;
+          if (spareMap.has(itemName)) {
+            // Update existing
+            const row = spareMap.get(itemName)!;
+            row.quantity += quantity;
+            row.total_cost += totalCost;
+            // keep price per unit as average (for simplicity, sum weighted)
+            row.price_per_unit = row.total_cost / row.quantity;
+            // Prefer earliest date
+            if (new Date(row.date) > new Date(maint.service_date)) row.date = new Date(maint.service_date).toLocaleDateString();
+            // Prefer latest description
+            row.service_description = actualDescription;
+          } else {
+            spareMap.set(itemName, {
+              truck_number: truckNumber,
+              spare: itemName,
+              quantity,
+              price_per_unit: pricePerUnit,
+              total_cost: totalCost,
+              maintenance_category: maint.maintenance_type,
+              service_type: maint.service_type || 'N/A',
+              route: maint.route_taken || 'N/A',
+              service_description: actualDescription,
+              date: new Date(maint.service_date).toLocaleDateString(),
+            });
+          }
+
+          truckStats[truckNumber].total_cost += totalCost;
+          truckStats[truckNumber].total_quantity += quantity;
         });
       });
 
-      // Generate the full report HTML
+      const reportRows: SpareRow[] = [];
+      // Flatten truckMap to an array
+      for (const [truckNumber, spareMap] of truckMap.entries()) {
+        for (const [, row] of spareMap.entries()) {
+          reportRows.push(row);
+        }
+      }
+
+      // Sort rows for uniformity
+      reportRows.sort((a, b) => a.truck_number.localeCompare(b.truck_number) || a.spare.localeCompare(b.spare));
+
+      // Prepare stats sorted by spend
+      const statsRows = Object.values(truckStats).sort((a, b) => b.total_cost - a.total_cost);
+
       generateDetailedSparesReport({
         type: 'Truck Spares Report',
         period: `${dateRange.from!.toLocaleDateString()} - ${dateRange.to!.toLocaleDateString()}`,
         truckFilter: selectedTruck === 'all' ? 'All Trucks' : trucks?.find(t => t.id === selectedTruck)?.truck_number || 'Unknown Truck',
         rows: reportRows,
+        stats: statsRows,
       });
 
       toast({
@@ -142,7 +187,6 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
     // Build HTML table rows
     const tableRows = data.rows.map((row: any, idx: number) => `
       <tr>
-        <td>${row.truck_id}</td>
         <td>${row.truck_number}</td>
         <td>${row.spare}</td>
         <td style="text-align:right">${row.quantity}</td>
@@ -156,6 +200,15 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
       </tr>
     `).join('');
 
+    // Stats below the table
+    const statsTableRows = data.stats.map((stat: any, idx: number) => `
+      <tr>
+        <td>${stat.truck_number}</td>
+        <td style="text-align:right">KSh ${stat.total_cost.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        <td style="text-align:right">${stat.total_quantity}</td>
+      </tr>
+    `).join('');
+
     const reportHtml = `
       <html>
       <head>
@@ -163,7 +216,7 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; background: #fafafa; }
           h1, h2 { margin-bottom: 0.5em; }
-          table { width: 100%; border-collapse: collapse; background: #fff; }
+          table { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 2em; }
           th, td { border: 1px solid #ddd; padding: 8px; }
           th { background: #f5f5f5; }
           tr:nth-child(even) { background: #f9f9f9; }
@@ -176,8 +229,7 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
         <table>
           <thead>
             <tr>
-              <th>Truck ID</th>
-              <th>Truck Number</th>
+              <th>Truck Name</th>
               <th>Spare Part</th>
               <th>Quantity</th>
               <th>Price Per Unit</th>
@@ -191,6 +243,19 @@ export const SparesReportGenerator: React.FC<SparesReportGeneratorProps> = ({ on
           </thead>
           <tbody>
             ${tableRows}
+          </tbody>
+        </table>
+        <h3>Truck Spares Statistics</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Truck Name</th>
+              <th>Total Spares Spend</th>
+              <th>Total Quantity Bought</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${statsTableRows}
           </tbody>
         </table>
         <br>
