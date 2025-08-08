@@ -43,9 +43,11 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
     truck_id: '',
     description: '',
     technician: '',
+    labor_cost: '',
     cost: '',
     service_provider: '',
     service_type: 'servicing', // servicing or maintenance
+    category: 'corrective', // corrective | preventive | emergency
     route_taken: ''
   });
   const { toast } = useToast();
@@ -79,16 +81,25 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
       const itemsString = itemsPurchased.length > 0 
         ? itemsPurchased.map(item => `${item.name} (Qty: ${item.quantity}, Cost: KSh ${item.cost})`).join(', ')
         : null;
-      
+
+      const sparesTotal = itemsPurchased.reduce((sum, item) => sum + (item.cost || 0) * (item.quantity || 1), 0);
+      const laborCost = parseFloat(formData.labor_cost) || 0;
+      const totalCost = laborCost + sparesTotal;
+
       await createMaintenance.mutateAsync({
-        ...formData,
+        truck_id: formData.truck_id,
+        description: formData.description,
+        technician: formData.technician,
+        service_provider: formData.service_provider,
+        service_type: formData.service_type,
+        category: formData.category,
         maintenance_type: maintenanceType,
         service_date: serviceDate.toISOString().split('T')[0],
-        cost: parseFloat(formData.cost) || 0,
-        items_purchased: itemsString,
-        service_type: formData.service_type,
+        labor_cost: laborCost,
+        cost: totalCost,
+        items_purchased: itemsString || undefined,
         route_taken: formData.service_type === 'maintenance' ? formData.route_taken : null
-      });
+      } as any);
 
       toast({
         title: "Maintenance Record Added",
@@ -219,10 +230,25 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
                   Maintenance
                 </Label>
               </div>
-            </div>
           </div>
+        </div>
 
-          {/* Route Taken - Only show if maintenance is selected */}
+        {/* Category Selection */}
+        <div>
+          <Label className="text-sm font-medium">Category</Label>
+          <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+            <SelectTrigger className="text-sm">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="corrective">Corrective</SelectItem>
+              <SelectItem value="preventive">Preventive</SelectItem>
+              <SelectItem value="emergency">Emergency</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Route Taken - Only show if maintenance is selected */}
           {formData.service_type === 'maintenance' && (
             <div>
               <Label htmlFor="route_taken" className="text-sm font-medium">
@@ -260,13 +286,13 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="cost" className="text-sm font-medium">Service Cost (KSh)</Label>
+              <Label htmlFor="labor_cost" className="text-sm font-medium">Labor Cost (KSh)</Label>
               <Input
-                id="cost"
+                id="labor_cost"
                 type="number"
                 placeholder="0.00"
-                value={formData.cost}
-                onChange={(e) => handleInputChange('cost', e.target.value)}
+                value={formData.labor_cost}
+                onChange={(e) => handleInputChange('labor_cost', e.target.value)}
                 className="text-sm"
               />
             </div>
@@ -370,6 +396,24 @@ export const AddMaintenanceRecord: React.FC<AddMaintenanceRecordProps> = ({ onCl
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Totals */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div>
+              <Label className="text-sm font-medium">Spare Parts Total</Label>
+              <div className="text-sm font-semibold">
+                KSh {itemsPurchased.reduce((sum, item) => sum + (item.cost || 0) * (item.quantity || 1), 0).toLocaleString()}
+              </div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Labor Cost</Label>
+              <div className="text-sm font-semibold">KSh {(parseFloat(formData.labor_cost || '0') || 0).toLocaleString()}</div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Total Amount</Label>
+              <div className="text-sm font-semibold">KSh {(itemsPurchased.reduce((sum, item) => sum + (item.cost || 0) * (item.quantity || 1), 0) + (parseFloat(formData.labor_cost || '0') || 0)).toLocaleString()}</div>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 pt-4">

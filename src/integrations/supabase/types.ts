@@ -150,11 +150,42 @@ export type Database = {
         }
         Relationships: []
       }
+      fuel_prices: {
+        Row: {
+          created_at: string
+          effective_date: string
+          fuel_type: string
+          id: string
+          is_current: boolean
+          price_per_liter: number
+          region: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date?: string
+          fuel_type?: string
+          id?: string
+          is_current?: boolean
+          price_per_liter: number
+          region?: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string
+          fuel_type?: string
+          id?: string
+          is_current?: boolean
+          price_per_liter?: number
+          region?: string
+        }
+        Relationships: []
+      }
       fuel_records: {
         Row: {
           carbon_offset_kg: number | null
           cost_per_liter: number
           created_at: string | null
+          current_odometer: number | null
           driver_id: string | null
           fuel_date: string
           fuel_station: string | null
@@ -162,7 +193,9 @@ export type Database = {
           liters: number
           odometer_reading: number | null
           payment_method: string | null
+          previous_odometer: number | null
           receipt_number: string | null
+          route: string | null
           total_cost: number
           trip_id: string | null
           truck_id: string | null
@@ -172,6 +205,7 @@ export type Database = {
           carbon_offset_kg?: number | null
           cost_per_liter: number
           created_at?: string | null
+          current_odometer?: number | null
           driver_id?: string | null
           fuel_date: string
           fuel_station?: string | null
@@ -179,7 +213,9 @@ export type Database = {
           liters: number
           odometer_reading?: number | null
           payment_method?: string | null
+          previous_odometer?: number | null
           receipt_number?: string | null
+          route?: string | null
           total_cost: number
           trip_id?: string | null
           truck_id?: string | null
@@ -189,6 +225,7 @@ export type Database = {
           carbon_offset_kg?: number | null
           cost_per_liter?: number
           created_at?: string | null
+          current_odometer?: number | null
           driver_id?: string | null
           fuel_date?: string
           fuel_station?: string | null
@@ -196,7 +233,9 @@ export type Database = {
           liters?: number
           odometer_reading?: number | null
           payment_method?: string | null
+          previous_odometer?: number | null
           receipt_number?: string | null
+          route?: string | null
           total_cost?: number
           trip_id?: string | null
           truck_id?: string | null
@@ -235,12 +274,14 @@ export type Database = {
       }
       maintenance: {
         Row: {
+          category: string
           cost: number
           created_at: string | null
           description: string
           downtime_hours: number | null
           id: string
           items_purchased: string | null
+          labor_cost: number
           maintenance_type: string
           mileage_at_service: number | null
           next_service_date: string | null
@@ -254,12 +295,14 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          category?: string
           cost: number
           created_at?: string | null
           description: string
           downtime_hours?: number | null
           id?: string
           items_purchased?: string | null
+          labor_cost?: number
           maintenance_type: string
           mileage_at_service?: number | null
           next_service_date?: string | null
@@ -273,12 +316,14 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          category?: string
           cost?: number
           created_at?: string | null
           description?: string
           downtime_hours?: number | null
           id?: string
           items_purchased?: string | null
+          labor_cost?: number
           maintenance_type?: string
           mileage_at_service?: number | null
           next_service_date?: string | null
@@ -503,6 +548,7 @@ export type Database = {
       }
       truck_documents: {
         Row: {
+          cost: number
           created_at: string
           document_name: string
           document_type: string
@@ -518,6 +564,7 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          cost?: number
           created_at?: string
           document_name: string
           document_type: string
@@ -533,6 +580,7 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          cost?: number
           created_at?: string
           document_name?: string
           document_type?: string

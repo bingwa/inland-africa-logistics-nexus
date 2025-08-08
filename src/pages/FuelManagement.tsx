@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useTrucks, useFuelRecords, useCreateFuelRecord } from "@/hooks/useSupabaseData";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FuelRecord {
   id: string;
@@ -44,6 +45,7 @@ export default function FuelManagement() {
   const { data: fuelRecords, isLoading: recordsLoading } = useFuelRecords();
   const { data: trucks } = useTrucks();
   const createFuelRecord = useCreateFuelRecord();
+  const [currentFuelPrice, setCurrentFuelPrice] = useState<number>(0);
   // Use real reserve tank data (placeholder for now)
   const reserveTank = {
     id: "1",
@@ -59,49 +61,52 @@ export default function FuelManagement() {
     liters: "",
     total_cost: "",
     fuel_date: new Date().toISOString().split('T')[0],
-    odometer_reading: "",
+    previous_odometer: "",
+    current_odometer: "",
+    route: ""
   });
 
 
   const handleAddRecord = async () => {
-    if (!newRecord.truck_id || !newRecord.liters || !newRecord.total_cost) {
+    if (!newRecord.truck_id || !newRecord.liters) {
       toast({
         title: "Missing Required Fields",
-        description: "Please fill in truck, liters, and total cost.",
+        description: "Please fill in truck and liters.",
         variant: "destructive",
       });
       return;
     }
 
-    const recordData = {
+    const litersNum = parseFloat(newRecord.liters);
+    const price = currentFuelPrice || 0;
+    const totalCost = litersNum * price;
+
+    const recordData: any = {
       truck_id: newRecord.truck_id,
-      liters: parseFloat(newRecord.liters),
-      total_cost: parseFloat(newRecord.total_cost),
-      cost_per_liter: parseFloat(newRecord.total_cost) / parseFloat(newRecord.liters),
-      odometer_reading: newRecord.odometer_reading ? parseInt(newRecord.odometer_reading) : null,
+      liters: litersNum,
+      total_cost: totalCost,
+      cost_per_liter: price,
+      previous_odometer: newRecord.previous_odometer ? parseInt(newRecord.previous_odometer) : null,
+      current_odometer: newRecord.current_odometer ? parseInt(newRecord.current_odometer) : null,
+      route: newRecord.route || null,
       fuel_date: new Date(newRecord.fuel_date).toISOString(),
     };
 
     try {
-      await createFuelRecord.mutateAsync(recordData);
-      toast({
-        title: "Fuel Record Added",
-        description: "Fuel record has been successfully added.",
-      });
+      await createFuelRecord.mutateAsync(recordData as any);
+      toast({ title: "Fuel Record Added", description: "Fuel record has been successfully added." });
       setIsAddDialogOpen(false);
       setNewRecord({
         truck_id: "",
         liters: "",
         total_cost: "",
         fuel_date: new Date().toISOString().split('T')[0],
-        odometer_reading: "",
+        previous_odometer: "",
+        current_odometer: "",
+        route: "",
       });
     } catch (error) {
-      toast({
-        title: "Error Adding Record",
-        description: "Failed to add fuel record. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Error Adding Record", description: "Failed to add fuel record. Please try again.", variant: "destructive" });
     }
   };
 
@@ -121,11 +126,12 @@ export default function FuelManagement() {
       Liters: record.liters,
       'Total Cost (KSh)': record.total_cost,
       'Cost per Liter (KSh)': (record.total_cost / record.liters).toFixed(2),
-      'Fuel Station': record.fuel_station || '',
-      'Odometer Reading': record.odometer_reading || '',
-      'Efficiency (km/L)': record.odometer_reading ? (record.odometer_reading / record.liters).toFixed(2) : '',
-      'Attendant': record.driver_id || '',
-      'Receipt Number': record.receipt_number || ''
+      Route: (record as any).route || '',
+      'Previous Odometer': (record as any).previous_odometer ?? '',
+      'Current Odometer': (record as any).current_odometer ?? '',
+      'Efficiency (km/L)': ((record as any).current_odometer && (record as any).previous_odometer && record.liters
+        ? (((record as any).current_odometer - (record as any).previous_odometer) / record.liters).toFixed(2)
+        : ''),
     }));
 
     const csvContent = [
@@ -150,7 +156,6 @@ export default function FuelManagement() {
 
   const calculateFuelStats = () => {
     if (!fuelRecords) return { totalCost: 0, totalLiters: 0, avgEfficiency: 0 };
-    
     const thisMonth = fuelRecords.filter(record => {
       const recordDate = new Date(record.fuel_date);
       const now = new Date();
@@ -159,12 +164,12 @@ export default function FuelManagement() {
 
     const totalCost = thisMonth.reduce((sum, record) => sum + record.total_cost, 0);
     const totalLiters = thisMonth.reduce((sum, record) => sum + record.liters, 0);
-    const avgEfficiency = thisMonth
-      .filter(record => record.odometer_reading)
-      .reduce((sum, record, _, arr) => {
-        const efficiency = record.odometer_reading ? record.odometer_reading / record.liters : 0;
-        return sum + efficiency / arr.length;
-      }, 0);
+    const totalDistance = thisMonth.reduce((sum, record) => {
+      const prev = (record as any).previous_odometer;
+      const curr = (record as any).current_odometer;
+      return sum + (prev && curr && curr > prev ? (curr - prev) : 0);
+    }, 0);
+    const avgEfficiency = totalLiters > 0 && totalDistance > 0 ? totalDistance / totalLiters : 0;
 
     return { totalCost, totalLiters, avgEfficiency };
   };
@@ -222,12 +227,10 @@ export default function FuelManagement() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="cost">Total Cost (KSh)</Label>
+                  <Label>Cost (auto)</Label>
                   <Input
-                    id="cost"
-                    type="number"
-                    value={newRecord.total_cost}
-                    onChange={(e) => setNewRecord({...newRecord, total_cost: e.target.value})}
+                    value={(parseFloat(newRecord.liters || '0') * (currentFuelPrice || 0)).toFixed(2)}
+                    readOnly
                   />
                 </div>
               </div>
@@ -240,14 +243,47 @@ export default function FuelManagement() {
                   onChange={(e) => setNewRecord({...newRecord, fuel_date: e.target.value})}
                 />
               </div>
-              <div>
-                <Label htmlFor="odometer">Odometer Reading (km)</Label>
-                <Input
-                  id="odometer"
-                  type="number"
-                  value={newRecord.odometer_reading}
-                  onChange={(e) => setNewRecord({...newRecord, odometer_reading: e.target.value})}
-                />
+              <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="prev_odo">Previous Odometer (km)</Label>
+                    <Input
+                      id="prev_odo"
+                      type="number"
+                      value={newRecord.previous_odometer}
+                      onChange={(e) => setNewRecord({...newRecord, previous_odometer: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="curr_odo">Current Odometer (km)</Label>
+                    <Input
+                      id="curr_odo"
+                      type="number"
+                      value={newRecord.current_odometer}
+                      onChange={(e) => setNewRecord({...newRecord, current_odometer: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="route">Route</Label>
+                  <Input
+                    id="route"
+                    value={newRecord.route}
+                    onChange={(e) => setNewRecord({...newRecord, route: e.target.value})}
+                    placeholder="e.g. Mombasa → Nairobi"
+                  />
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Efficiency (auto): {
+                    (() => {
+                      const l = parseFloat(newRecord.liters || '0');
+                      const prev = parseInt(newRecord.previous_odometer || '0');
+                      const curr = parseInt(newRecord.current_odometer || '0');
+                      const dist = curr && prev && curr > prev ? (curr - prev) : 0;
+                      return l > 0 && dist > 0 ? `${(dist / l).toFixed(2)} km/L` : '-';
+                    })()
+                  }
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -370,7 +406,6 @@ export default function FuelManagement() {
                   <th className="text-left p-2">Truck</th>
                   <th className="text-left p-2">Liters</th>
                   <th className="text-left p-2">Cost</th>
-                  
                   <th className="text-left p-2">Efficiency</th>
                 </tr>
               </thead>
@@ -384,7 +419,9 @@ export default function FuelManagement() {
                     <td className="p-2">{record.liters}L</td>
                     <td className="p-2">KSh {record.total_cost.toLocaleString()}</td>
                     <td className="p-2">
-                      {record.odometer_reading ? `${(record.odometer_reading / record.liters).toFixed(1)} km/L` : '-'}
+                      {(record as any).current_odometer && (record as any).previous_odometer && record.liters
+                        ? `${(((record as any).current_odometer - (record as any).previous_odometer) / record.liters).toFixed(1)} km/L`
+                        : '-'}
                     </td>
                   </tr>
                 ))}

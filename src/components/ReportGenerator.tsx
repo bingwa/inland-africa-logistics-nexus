@@ -158,20 +158,13 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
       const totalCost = truckFuel.reduce((sum, f) => sum + (f.total_cost || 0), 0);
       const avgCostPerLiter = totalLiters > 0 ? totalCost / totalLiters : 0;
       
-      // Calculate fuel efficiency based on odometer readings
-      const sortedFuelRecords = truckFuel
-        .filter(f => f.odometer_reading && f.odometer_reading > 0)
-        .sort((a, b) => new Date(a.fuel_date).getTime() - new Date(b.fuel_date).getTime());
-      
-      let fuelEfficiency = 0;
-      if (sortedFuelRecords.length >= 2) {
-        const firstRecord = sortedFuelRecords[0];
-        const lastRecord = sortedFuelRecords[sortedFuelRecords.length - 1];
-        const distanceTraveled = (lastRecord.odometer_reading || 0) - (firstRecord.odometer_reading || 0);
-        if (distanceTraveled > 0 && totalLiters > 0) {
-          fuelEfficiency = distanceTraveled / totalLiters;
-        }
-      }
+      // Calculate fuel efficiency based on odometer readings (prev/current)
+      const totalDistance = truckFuel.reduce((sum, f: any) => {
+        const prev = f.previous_odometer;
+        const curr = f.current_odometer;
+        return sum + (prev && curr && curr > prev ? (curr - prev) : 0);
+      }, 0);
+      const fuelEfficiency = totalDistance > 0 && totalLiters > 0 ? totalDistance / totalLiters : 0;
       
       return {
         truck,
@@ -181,12 +174,14 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
         fuelEfficiency,
         recordCount: truckFuel.length,
         lastRefill: truckFuel.length > 0 ? new Date(Math.max(...truckFuel.map(f => new Date(f.fuel_date).getTime()))).toLocaleDateString() : 'N/A',
-        fuelRecords: truckFuel.map(f => ({
+        fuelRecords: truckFuel.map((f: any) => ({
           date: new Date(f.fuel_date).toLocaleDateString(),
           liters: f.liters,
           cost: f.total_cost,
           costPerLiter: f.cost_per_liter,
-          odometer: f.odometer_reading || 'N/A'
+          prevOdo: f.previous_odometer ?? 'N/A',
+          currOdo: f.current_odometer ?? 'N/A',
+          route: f.route || 'N/A'
         }))
       };
     });
@@ -235,10 +230,12 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
         servicesCount: services.length,
         maintenanceCount: maintenanceRecords.length,
         lastService: truckMaintenance.length > 0 ? new Date(Math.max(...truckMaintenance.map(m => new Date(m.service_date).getTime()))).toLocaleDateString() : 'N/A',
-        maintenanceRecords: truckMaintenance.map(m => ({
+        maintenanceRecords: truckMaintenance.map((m: any) => ({
           date: new Date(m.service_date).toLocaleDateString(),
           type: m.service_type || 'maintenance',
+          category: m.category || 'N/A',
           description: m.description,
+          laborCost: m.labor_cost || 0,
           cost: m.cost,
           status: m.status,
           technician: m.technician || 'N/A',
@@ -491,7 +488,9 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
                     <th>Liters</th>
                     <th>Cost (KSh)</th>
                     <th>Cost/Liter</th>
-                    <th>Odometer</th>
+                    <th>Prev Odo</th>
+                    <th>Curr Odo</th>
+                    <th>Route</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -501,7 +500,9 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
                       <td>${record.liters}</td>
                       <td>${record.cost.toLocaleString()}</td>
                       <td>${record.costPerLiter.toFixed(2)}</td>
-                      <td>${record.odometer}</td>
+                      <td>${record.prevOdo}</td>
+                      <td>${record.currOdo}</td>
+                      <td>${record.route}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -564,28 +565,32 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({ reportType, on
               <h4>${stat.truck.truck_number} - ${stat.truck.make} ${stat.truck.model}</h4>
               <table>
                 <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                    <th>Cost (KSh)</th>
-                    <th>Status</th>
-                    <th>Route Taken</th>
-                    <th>Items Purchased</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${stat.maintenanceRecords.map((record: any) => `
                     <tr>
-                      <td>${record.date}</td>
-                      <td>${record.type.charAt(0).toUpperCase() + record.type.slice(1)}</td>
-                      <td>${record.description}</td>
-                      <td>${record.cost?.toLocaleString() || 'N/A'}</td>
-                      <td class="${record.status === 'completed' ? 'profit' : 'loss'}">${record.status}</td>
-                      <td>${record.routeTaken}</td>
-                      <td>${record.itemsPurchased}</td>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>Category</th>
+                      <th>Description</th>
+                      <th>Labor Cost (KSh)</th>
+                      <th>Total Cost (KSh)</th>
+                      <th>Status</th>
+                      <th>Route Taken</th>
+                      <th>Items Purchased</th>
                     </tr>
-                  `).join('')}
+                  </thead>
+                  <tbody>
+                    ${stat.maintenanceRecords.map((record: any) => `
+                      <tr>
+                        <td>${record.date}</td>
+                        <td>${record.type.charAt(0).toUpperCase() + record.type.slice(1)}</td>
+                        <td>${record.category || 'N/A'}</td>
+                        <td>${record.description}</td>
+                        <td>${record.laborCost?.toLocaleString() || '0'}</td>
+                        <td>${record.cost?.toLocaleString() || 'N/A'}</td>
+                        <td class="${record.status === 'completed' ? 'profit' : 'loss'}">${record.status}</td>
+                        <td>${record.routeTaken}</td>
+                        <td>${record.itemsPurchased}</td>
+                      </tr>
+                    `).join('')}
                 </tbody>
               </table>
             </div>
